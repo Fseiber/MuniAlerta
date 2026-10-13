@@ -1,0 +1,36 @@
+﻿ datasource db {
+   provider =  postgresql
+   url      = env(DATABASE_URL)
+   directUrl = env(DIRECT_URL)
+ }
+ 
+ generator client {
+   provider = prisma-client-js
+   version  = 6.0.0
+ }
+ 
+ enum Gravedad {
+   LEVE
+   MODERADO
+   GRAVE
+ }
+ 
+ enum EstadoReporte {
+   PENDIENTE
+   EN_REVISION
+   RESUELTO
+ }
+ 
+ model Reporte {
+   id               Int        @id @default(autoincrement())
+   expedienteDoco   String     @unique
+   latitud          Float
+   longitud         Float
+   descripcion      String
+   gravedad         Gravedad   @default(MODERADO)
+   esTransitable    Boolean?
+   estado           EstadoReporte @default(PENDIENTE)
+   esDemo           Boolean    @default(false)
+   umbralLluvia     Int?
+   fechaCreacion    DateTime   @default(now())
+ }
