@@ -1,64 +1,106 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import prisma from '../db';
-import { Gravedad, EstadoReporte } from '@prisma/client';
+import { EstadoReporte, Gravedad, Prisma } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { clasificarGravedad } from '../services/gemini';
 
 export const obtenerReportes = async (req: Request, res: Response) => {
-  const esDemo = req.query.esDemo === 'true';
-  const reportes = await prisma.reporte.findMany({
-    where: { esDemo },
-    orderBy: { fechaCreacion: 'desc' },
-  });
-  res.json(reportes);
+  try {
+    const esDemo = req.query.esDemo === 'true';
+    const reportes = await prisma.reporte.findMany({
+      where: { esDemo },
+      orderBy: { fechaCreacion: 'desc' },
+    });
+    res.json(reportes);
+  } catch (error) {
+    console.error('Error al obtener reportes:', error);
+    res.status(500).json({ error: 'No se pudieron obtener los reportes' });
+  }
 };
 
 export const obtenerReportePorId = async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'id inválido' });
-  const reporte = await prisma.reporte.findUnique({ where: { id } });
-  if (!reporte) return res.status(404).json({ error: 'Reporte no encontrado' });
-  res.json(reporte);
+  try {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: 'El id debe ser numérico' });
+      return;
+    }
+    const reporte = await prisma.reporte.findUnique({ where: { id } });
+    if (!reporte) {
+      res.status(404).json({ error: 'Reporte no encontrado' });
+      return;
+    }
+    res.json(reporte);
+  } catch (error) {
+    console.error('Error al obtener el reporte:', error);
+    res.status(500).json({ error: 'No se pudo obtener el reporte' });
+  }
 };
 
 export const crearReporte = async (req: Request, res: Response) => {
-  const { latitud, longitud, texto, esDemo } = req.body;
-  if (typeof latitud !== 'number' || typeof longitud !== 'number')
-    return res.status(400).json({ error: 'latitud y longitud deben ser numéricos' });
-  if (!texto || typeof texto !== 'string')
-    return res.status(400).json({ error: 'texto es requerido' });
-  // TODO: generar expedienteDoco con formato DOCO-2026-XXXX
-  const ultimo = await prisma.reporte.findFirst({ orderBy: { id: 'desc' } });
-  const proximoNum = ultimo ? ultimo.id + 1 : 1;
-  const expedienteDoco = `DOCO-2026-${String(proximoNum).padStart(4, '0')}`;
-  let gravedad: Gravedad = Gravedad.MODERADO;
   try {
-    gravedad = await clasificarGravedad(texto);
-  } catch (error) {
-    console.error('No se pudo clasificar el reporte con Gemini:', error);
-  }
+    const { latitud, longitud, texto, esDemo } = req.body;
+    if (typeof latitud !== 'number' || typeof longitud !== 'number') {
+      res.status(400).json({ error: 'latitud y longitud deben ser numéricos' });
+      return;
+    }
+    if (!texto || typeof texto !== 'string') {
+      res.status(400).json({ error: 'texto es requerido' });
+      return;
+    }
 
-  const nuevo = await prisma.reporte.create({
-    data: {
-      expedienteDoco,
-      latitud,
-      longitud,
-      descripcion: texto,
-      gravedad,
-      esDemo: !!esDemo,
-    },
-  });
-  res.status(201).json(nuevo);
+    let gravedad: Gravedad = Gravedad.MODERADO;
+    try {
+      gravedad = await clasificarGravedad(texto);
+    } catch (error) {
+      console.error('No se pudo clasificar el reporte con Gemini:', error);
+    }
+
+    const nuevo = await prisma.$transaction(async (tx) => {
+      const temporal = `TEMP-${randomUUID()}`;
+      const creado = await tx.reporte.create({
+        data: {
+          expedienteDoco: temporal,
+          latitud,
+          longitud,
+          descripcion: texto,
+          gravedad,
+          esDemo: !!esDemo,
+        },
+      });
+      return tx.reporte.update({
+        where: { id: creado.id },
+        data: { expedienteDoco: `DOCO-2026-${String(creado.id).padStart(4, '0')}` },
+      });
+    });
+
+    res.status(201).json(nuevo);
+  } catch (error) {
+    console.error('Error al crear el reporte:', error);
+    res.status(500).json({ error: 'No se pudo crear el reporte' });
+  }
 };
 
 export const actualizarEstadoReporte = async (req: Request, res: Response) => {
-  const id = Number(req.params.id);
-  const { estado } = req.body;
-  if (isNaN(id)) return res.status(400).json({ error: 'id inválido' });
-  if (!Object.values(EstadoReporte).includes(estado))
-    return res.status(400).json({ error: 'estado debe ser uno de los valores permitidos' });
-  const actualizado = await prisma.reporte.update({
-    where: { id },
-    data: { estado },
-  });
-  res.json(actualizado);
+  try {
+    const id = Number(req.params.id);
+    const { estado } = req.body;
+    if (Number.isNaN(id)) {
+      res.status(400).json({ error: 'El id debe ser numérico' });
+      return;
+    }
+    if (!Object.values(EstadoReporte).includes(estado)) {
+      res.status(400).json({ error: 'estado debe ser uno de los valores permitidos' });
+      return;
+    }
+    const actualizado = await prisma.reporte.update({ where: { id }, data: { estado } });
+    res.json(actualizado);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      res.status(404).json({ error: 'Reporte no encontrado' });
+      return;
+    }
+    console.error('Error al actualizar el estado del reporte:', error);
+    res.status(500).json({ error: 'No se pudo actualizar el estado del reporte' });
+  }
 };

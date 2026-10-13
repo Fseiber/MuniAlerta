@@ -25,6 +25,7 @@ model Reporte {
   expedienteDoco String        @unique
   latitud        Float
   longitud       Float
+  barrio         String?
   descripcion    String
   gravedad       Gravedad      @default(MODERADO)
   esTransitable  Boolean?
