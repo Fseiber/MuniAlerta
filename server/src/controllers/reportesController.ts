@@ -1,6 +1,7 @@
 ﻿import { Request, Response } from 'express';
 import prisma from '../db';
 import { Gravedad, EstadoReporte } from '@prisma/client';
+import { clasificarGravedad } from '../services/gemini';
 
 export const obtenerReportes = async (req: Request, res: Response) => {
   const esDemo = req.query.esDemo === 'true';
@@ -28,7 +29,13 @@ export const crearReporte = async (req: Request, res: Response) => {
   // TODO: generar expedienteDoco con formato DOCO-2026-XXXX
   const ultimo = await prisma.reporte.findFirst({ orderBy: { id: 'desc' } });
   const proximoNum = ultimo ? ultimo.id + 1 : 1;
-  const expedienteDoco = DOCO-2026-;
+  const expedienteDoco = `DOCO-2026-${String(proximoNum).padStart(4, '0')}`;
+  let gravedad: Gravedad = Gravedad.MODERADO;
+  try {
+    gravedad = await clasificarGravedad(texto);
+  } catch (error) {
+    console.error('No se pudo clasificar el reporte con Gemini:', error);
+  }
 
   const nuevo = await prisma.reporte.create({
     data: {
@@ -36,11 +43,10 @@ export const crearReporte = async (req: Request, res: Response) => {
       latitud,
       longitud,
       descripcion: texto,
-      gravedad: Gravedad.MODERADO,
+      gravedad,
       esDemo: !!esDemo,
     },
   });
-  // TODO: llamar a Gemini para clasificar gravedad
   res.status(201).json(nuevo);
 };
 
@@ -49,7 +55,7 @@ export const actualizarEstadoReporte = async (req: Request, res: Response) => {
   const { estado } = req.body;
   if (isNaN(id)) return res.status(400).json({ error: 'id inválido' });
   if (!Object.values(EstadoReporte).includes(estado))
-    return res.status(400).json({ error: estado debe ser uno de  });
+    return res.status(400).json({ error: 'estado debe ser uno de los valores permitidos' });
   const actualizado = await prisma.reporte.update({
     where: { id },
     data: { estado },

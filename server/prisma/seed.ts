@@ -31,7 +31,7 @@ async function main() {
     const { lat, lng } = randomInRadius();
     const gravedad = [Gravedad.LEVE, Gravedad.MODERADO, Gravedad.GRAVE][Math.floor(Math.random()*3)];
     const umbral = Math.floor(Math.random()*96) + 5; // 5-100
-    const expediente = DOCO-2026-;
+    const expediente = `DOCO-2026-${String(i).padStart(4, '0')}`;
     const desc = descripciones[i % descripciones.length];
     await prisma.reporte.create({
       data: {
@@ -52,10 +52,10 @@ async function main() {
 main()
   .then(async () => {
     console.log('Seed completado con 30 reportes demo');
-    await prisma.();
+    await prisma.$disconnect();
   })
   .catch(async (e) => {
     console.error(e);
-    await prisma.();
+    await prisma.$disconnect();
     process.exit(1);
   });
