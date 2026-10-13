@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import prisma from '../db';
-import { EstadoReporte, Gravedad, Prisma } from '@prisma/client';
+import { EstadoReporte, Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { clasificarGravedad } from '../services/gemini';
+import { barrioMasCercano } from '../barrios';
 
 export const obtenerReportes = async (req: Request, res: Response) => {
   try {
@@ -39,7 +40,7 @@ export const obtenerReportePorId = async (req: Request, res: Response) => {
 
 export const crearReporte = async (req: Request, res: Response) => {
   try {
-    const { latitud, longitud, texto, esDemo } = req.body;
+    const { latitud, longitud, texto, esDemo, barrio } = req.body;
     if (typeof latitud !== 'number' || typeof longitud !== 'number') {
       res.status(400).json({ error: 'latitud y longitud deben ser numéricos' });
       return;
@@ -49,12 +50,10 @@ export const crearReporte = async (req: Request, res: Response) => {
       return;
     }
 
-    let gravedad: Gravedad = Gravedad.MODERADO;
-    try {
-      gravedad = await clasificarGravedad(texto);
-    } catch (error) {
-      console.error('No se pudo clasificar el reporte con Gemini:', error);
-    }
+    const clasificacion = await clasificarGravedad(texto);
+    const nombreBarrio = typeof barrio === 'string' && barrio.trim()
+      ? barrio.trim()
+      : barrioMasCercano(latitud, longitud).nombre;
 
     const nuevo = await prisma.$transaction(async (tx) => {
       const temporal = `TEMP-${randomUUID()}`;
@@ -63,8 +62,10 @@ export const crearReporte = async (req: Request, res: Response) => {
           expedienteDoco: temporal,
           latitud,
           longitud,
+          barrio: nombreBarrio,
           descripcion: texto,
-          gravedad,
+          gravedad: clasificacion.gravedad,
+          esTransitable: clasificacion.transitable,
           esDemo: !!esDemo,
         },
       });
@@ -74,7 +75,7 @@ export const crearReporte = async (req: Request, res: Response) => {
       });
     });
 
-    res.status(201).json(nuevo);
+    res.status(201).json({ reporte: nuevo, mensajeRespuesta: clasificacion.mensajeRespuesta });
   } catch (error) {
     console.error('Error al crear el reporte:', error);
     res.status(500).json({ error: 'No se pudo crear el reporte' });
@@ -84,7 +85,7 @@ export const crearReporte = async (req: Request, res: Response) => {
 export const actualizarEstadoReporte = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { estado } = req.body;
+    const { estado, cuadrilla } = req.body;
     if (Number.isNaN(id)) {
       res.status(400).json({ error: 'El id debe ser numérico' });
       return;
@@ -93,7 +94,11 @@ export const actualizarEstadoReporte = async (req: Request, res: Response) => {
       res.status(400).json({ error: 'estado debe ser uno de los valores permitidos' });
       return;
     }
-    const actualizado = await prisma.reporte.update({ where: { id }, data: { estado } });
+    if (cuadrilla !== undefined && cuadrilla !== null && typeof cuadrilla !== 'string') {
+      res.status(400).json({ error: 'cuadrilla debe ser un texto' });
+      return;
+    }
+    const actualizado = await prisma.reporte.update({ where: { id }, data: { estado, cuadrilla } });
     res.json(actualizado);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

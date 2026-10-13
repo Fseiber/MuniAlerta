@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import reportesRouter from './routes/reportes';
 import iaRouter from './routes/ia';
+import barriosRouter from './routes/barrios';
 
 const app = express();
 app.use(express.json());
@@ -21,6 +22,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api', reportesRouter);
 app.use('/api', iaRouter);
+app.use('/api', barriosRouter);
 
 const port = Number(process.env.PORT) || 3000;
 app.listen(port, () => {

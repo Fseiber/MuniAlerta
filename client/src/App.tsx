@@ -1,174 +1,351 @@
-import { useEffect, useState } from 'react'
-import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
-import { crearReporte, generarBoletin, obtenerReportes } from './services/api'
-import type { Reporte } from './types'
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from 'react'
+import { Circle, CircleMarker, MapContainer, Pane, Polyline, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { actualizarEstadoReporte, crearReporte, generarBoletin, obtenerBarrios, obtenerReportes } from './services/api'
+import type { Barrio, Boletin, Reporte } from './types'
 import './App.css'
 
 const CORRIENTES = { latitud: -27.4692, longitud: -58.8306 }
 const CENTRO_MAPA: [number, number] = [CORRIENTES.latitud, CORRIENTES.longitud]
+const CUADRILLAS = ['Cuadrilla Norte', 'Cuadrilla Centro', 'Cuadrilla Sur']
 
-const coloresGravedad = {
-  LEVE: '#22c55e',
-  MODERADO: '#eab308',
-  GRAVE: '#ef4444',
+type Ubicacion = { latitud: number; longitud: number }
+type Burbuja = { rol: 'vecino' | 'bot'; texto: string }
+type RadarFrame = { host: string; path: string; time: number }
+type DatosClima = { temperatura: number | null; lluvia: number | null; viento: number | null; rafagas: number | null; direccion: string }
+
+function InteraccionMapa({ onSeleccionar, ubicacionParaCentrar }: { onSeleccionar: (ubicacion: Ubicacion) => void; ubicacionParaCentrar: Ubicacion | null }) {
+  const mapa = useMap()
+  useMapEvents({ click: (evento) => onSeleccionar({ latitud: evento.latlng.lat, longitud: evento.latlng.lng }) })
+
+  useEffect(() => {
+    if (ubicacionParaCentrar) mapa.flyTo([ubicacionParaCentrar.latitud, ubicacionParaCentrar.longitud], 15, { duration: 1.2 })
+  }, [mapa, ubicacionParaCentrar])
+
+  return null
+}
+
+function distanciaKm(origen: Ubicacion, destino: Ubicacion) {
+  const radioTierra = 6371
+  const dLat = ((destino.latitud - origen.latitud) * Math.PI) / 180
+  const dLng = ((destino.longitud - origen.longitud) * Math.PI) / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((origen.latitud * Math.PI) / 180) * Math.cos((destino.latitud * Math.PI) / 180) * Math.sin(dLng / 2) ** 2
+  return radioTierra * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function horaSimulada(nivel: number) {
+  const totalMinutos = 15 * 60 + Math.round((nivel / 100) * 5 * 60)
+  return `${String(Math.floor(totalMinutos / 60) % 24).padStart(2, '0')}:${String(totalMinutos % 60).padStart(2, '0')}`
+}
+
+function direccionCardinal(grados: number) {
+  return ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'][Math.round(grados / 45) % 8]
+}
+
+function horaFrame(timestamp: number) {
+  return new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(timestamp * 1000))
+}
+
+const OPCIONES_CHARCO = { color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.35, weight: 1 }
+const OPCIONES_CALLE = { color: '#38bdf8', weight: 6, opacity: 0.7 }
+const OPCIONES_UBICACION = { color: '#f8fafc', fillColor: '#59a9ff', fillOpacity: 1, weight: 3 }
+const OPCIONES_RESALTADO = { color: '#ffffff', fillOpacity: 0, weight: 3, className: 'pin-resaltado' }
+const OPCIONES_PIN = {
+  LEVE: { normal: { color: '#22c55e', fillColor: '#22c55e', fillOpacity: 0.82, weight: 2 }, revision: { color: '#ffffff', fillColor: '#22c55e', fillOpacity: 0.82, weight: 4 } },
+  MODERADO: { normal: { color: '#eab308', fillColor: '#eab308', fillOpacity: 0.82, weight: 2 }, revision: { color: '#ffffff', fillColor: '#eab308', fillOpacity: 0.82, weight: 4 } },
+  GRAVE: { normal: { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.82, weight: 2 }, revision: { color: '#ffffff', fillColor: '#ef4444', fillOpacity: 0.82, weight: 4 } },
 } as const
+
+const CapaAgua = memo(function CapaAgua({ reportes, nivelLluvia, esModoDemo }: { reportes: Reporte[]; nivelLluvia: number; esModoDemo: boolean }) {
+  return <Pane name="agua" style={{ zIndex: 390 }}>{reportes.map((reporte) => {
+    const radio = reporte.radioCharcoM === null ? null : esModoDemo
+      ? reporte.radioCharcoM * (0.6 + 0.8 * Math.min(1, Math.max(0, (nivelLluvia - (reporte.umbralLluvia ?? 0)) / 40)))
+      : reporte.radioCharcoM
+    const trazado = reporte.trazado?.map(([lat, lng]) => [lat, lng] as [number, number])
+    if (radio === null && !trazado) return null
+    return <Fragment key={`agua-${reporte.id}`}>
+      {radio !== null && <Circle key={`charco-${reporte.id}`} center={[reporte.latitud, reporte.longitud]} radius={radio} pathOptions={OPCIONES_CHARCO} />}
+      {reporte.gravedad === 'GRAVE' && trazado && <Polyline key={`calle-${reporte.id}`} positions={trazado} pathOptions={OPCIONES_CALLE} />}
+    </Fragment>
+  })}</Pane>
+})
+
+const PinesMapa = memo(function PinesMapa({ reportes, barrioResaltado, onSeleccionar }: { reportes: Reporte[]; barrioResaltado: string | null; onSeleccionar: (reporte: Reporte) => void }) {
+  return <>{reportes.map((reporte) => {
+    const opciones = OPCIONES_PIN[reporte.gravedad][reporte.estado === 'EN_REVISION' ? 'revision' : 'normal']
+    return <Fragment key={reporte.id}>
+      {barrioResaltado === reporte.barrio && <CircleMarker key={`resaltado-${reporte.id}`} center={[reporte.latitud, reporte.longitud]} radius={15} pathOptions={OPCIONES_RESALTADO} />}
+      <CircleMarker key={`pin-${reporte.id}`} center={[reporte.latitud, reporte.longitud]} radius={9} pathOptions={opciones} eventHandlers={{ click: () => onSeleccionar(reporte) }}>
+        <Popup><strong>{reporte.expedienteDoco}</strong><br />{reporte.barrio}<br />{reporte.descripcion}</Popup>
+      </CircleMarker>
+    </Fragment>
+  })}</>
+})
 
 function App() {
   const [listaReportes, setListaReportes] = useState<Reporte[]>([])
+  const [barrios, setBarrios] = useState<Barrio[]>([])
   const [reporteSeleccionado, setReporteSeleccionado] = useState<Reporte | null>(null)
   const [esModoDemo, setEsModoDemo] = useState(true)
   const [nivelLluviaSimulada, setNivelLluviaSimulada] = useState(50)
   const [textoMensaje, setTextoMensaje] = useState('')
-  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<{
-    latitud: number
-    longitud: number
-  } | null>(null)
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<Ubicacion | null>(null)
+  const [ubicacionParaCentrar, setUbicacionParaCentrar] = useState<Ubicacion | null>(null)
+  const [barrioElegido, setBarrioElegido] = useState('')
+  const [mensajeUbicacion, setMensajeUbicacion] = useState('')
+  const [historialChat, setHistorialChat] = useState<Burbuja[]>([])
   const [cargando, setCargando] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [generandoBoletin, setGenerandoBoletin] = useState(false)
-  const [boletinContenido, setBoletinContenido] = useState<string | null>(null)
+  const [boletinContenido, setBoletinContenido] = useState<Boletin | null>(null)
   const [mensajeError, setMensajeError] = useState('')
+  const [clima, setClima] = useState<DatosClima>({ temperatura: null, lluvia: null, viento: null, rafagas: null, direccion: '--' })
+  const [horaReal, setHoraReal] = useState('')
+  const [radarActivo, setRadarActivo] = useState(false)
+  const [radarFrames, setRadarFrames] = useState<RadarFrame[]>([])
+  const [indiceRadar, setIndiceRadar] = useState(0)
+  const [radarReproduciendo, setRadarReproduciendo] = useState(false)
+  const [radarError, setRadarError] = useState(false)
+  const [mensajeOperador, setMensajeOperador] = useState('')
+  const [barrioResaltado, setBarrioResaltado] = useState<string | null>(null)
+  const timerResaltado = useRef<number | null>(null)
+  const barriosConsultados = useRef(false)
+
+  useEffect(() => {
+    if (barriosConsultados.current) return
+    barriosConsultados.current = true
+    void obtenerBarrios().then(setBarrios).catch(() => setMensajeError('No se pudieron cargar los barrios.'))
+  }, [])
 
   useEffect(() => {
     let activo = true
-
     const cargarReportes = async () => {
       try {
         const reportes = await obtenerReportes(esModoDemo)
-        if (activo) {
-          setListaReportes(reportes)
-          setMensajeError('')
-        }
-      } catch {
-        if (activo) setMensajeError('No se pudo conectar con el servidor municipal.')
-      } finally {
-        if (activo) setCargando(false)
-      }
+        if (activo) { setListaReportes(reportes); setMensajeError('') }
+      } catch { if (activo) setMensajeError('No se pudo conectar con el servidor municipal.') }
+      finally { if (activo) setCargando(false) }
     }
-
     void cargarReportes()
+    if (esModoDemo) return () => { activo = false }
     const intervalo = window.setInterval(() => void cargarReportes(), 4000)
-    return () => {
-      activo = false
-      window.clearInterval(intervalo)
-    }
+    return () => { activo = false; window.clearInterval(intervalo) }
   }, [esModoDemo])
 
-  const reportesVisibles = esModoDemo
-    ? listaReportes.filter((reporte) => (reporte.umbralLluvia ?? 0) <= nivelLluviaSimulada)
-    : listaReportes
+  useEffect(() => {
+    if (esModoDemo) return
+    const actualizarHora = () => setHoraReal(new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()))
+    actualizarHora()
+    const intervalo = window.setInterval(actualizarHora, 30_000)
+    return () => window.clearInterval(intervalo)
+  }, [esModoDemo])
 
-  const usarUbicacionDePrueba = () => setUbicacionSeleccionada(CORRIENTES)
+  useEffect(() => {
+    if (esModoDemo) return
+    let activo = true
+    const cargarTemperatura = async () => {
+      try {
+        const respuesta = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-27.4692&longitude=-58.8306&current=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=America%2FArgentina%2FBuenos_Aires')
+        if (!respuesta.ok) throw new Error('No se pudo obtener el clima')
+        const datos = await respuesta.json() as { current?: { temperature_2m?: number; precipitation?: number; wind_speed_10m?: number; wind_direction_10m?: number; wind_gusts_10m?: number } }
+        const actual = datos.current
+        if (activo) setClima({ temperatura: actual?.temperature_2m ?? null, lluvia: actual?.precipitation ?? null, viento: actual?.wind_speed_10m ?? null, rafagas: actual?.wind_gusts_10m ?? null, direccion: typeof actual?.wind_direction_10m === 'number' ? direccionCardinal(actual.wind_direction_10m) : '--' })
+      } catch { if (activo) setClima({ temperatura: null, lluvia: null, viento: null, rafagas: null, direccion: '--' }) }
+    }
+    void cargarTemperatura()
+    const intervalo = window.setInterval(() => void cargarTemperatura(), 600_000)
+    return () => { activo = false; window.clearInterval(intervalo) }
+  }, [esModoDemo])
+
+  useEffect(() => {
+    if (esModoDemo || !radarActivo) { setRadarFrames([]); setRadarReproduciendo(false); return }
+    let activo = true
+    const cargarRadar = async () => {
+      try {
+        const respuesta = await fetch('https://api.rainviewer.com/public/weather-maps.json')
+        if (!respuesta.ok) throw new Error('Radar no disponible')
+        const datos = await respuesta.json() as { host?: string; radar?: { past?: Array<{ path: string; time: number }>; nowcast?: Array<{ path: string; time: number }> } }
+        const frames = [...(datos.radar?.past ?? []), ...(datos.radar?.nowcast ?? [])]
+        if (!datos.host || frames.length === 0) throw new Error('Radar sin frames')
+        if (activo) { setRadarFrames(frames.map((frame) => ({ ...frame, host: datos.host! }))); setIndiceRadar((indice) => Math.min(indice, frames.length - 1)); setRadarError(false) }
+      } catch {
+        if (activo) { setRadarFrames([]); setRadarError(true); setRadarActivo(false) }
+      }
+    }
+    void cargarRadar()
+    const intervalo = window.setInterval(() => void cargarRadar(), 300_000)
+    return () => { activo = false; window.clearInterval(intervalo) }
+  }, [esModoDemo, radarActivo])
+
+  useEffect(() => {
+    if (!radarReproduciendo || radarFrames.length < 2) return
+    const intervalo = window.setInterval(() => setIndiceRadar((indice) => (indice + 1) % radarFrames.length), 700)
+    return () => window.clearInterval(intervalo)
+  }, [radarFrames.length, radarReproduciendo])
+
+  const reportesVisibles = useMemo(() => listaReportes.filter((reporte) => reporte.estado !== 'RESUELTO' && (!esModoDemo || (reporte.umbralLluvia ?? 0) <= nivelLluviaSimulada)), [listaReportes, esModoDemo, nivelLluviaSimulada])
+  const horaVisible = esModoDemo ? horaSimulada(nivelLluviaSimulada) : horaReal || '--:--'
+  const temperaturaVisible = esModoDemo ? `${(34 - nivelLluviaSimulada * 0.12).toFixed(1)}°C` : clima.temperatura === null ? '--°C' : `${clima.temperatura.toFixed(1)}°C`
+  const lluviaVisible = esModoDemo ? nivelLluviaSimulada * 0.9 : clima.lluvia
+  const paranaVisible = esModoDemo ? (4.5 + nivelLluviaSimulada * 0.012).toFixed(2) : '--'
+  const vientoVisible = esModoDemo ? 15 + nivelLluviaSimulada * 0.35 : clima.viento
+  const rafagasVisible = esModoDemo ? (15 + nivelLluviaSimulada * 0.35) * 1.5 : clima.rafagas
+  const reportesActivos = useMemo(() => reportesVisibles.filter((reporte) => reporte.estado !== 'RESUELTO'), [reportesVisibles])
+  const emergenciasGraves = useMemo(() => reportesActivos.filter((reporte) => reporte.gravedad === 'GRAVE'), [reportesActivos])
+
+  const seleccionarUbicacion = (ubicacion: Ubicacion) => {
+    setMensajeUbicacion('')
+    setUbicacionSeleccionada(ubicacion)
+    setUbicacionParaCentrar(ubicacion)
+  }
+
+  const seleccionarUbicacionEnMapa = (ubicacion: Ubicacion) => {
+    setMensajeUbicacion('')
+    setBarrioElegido('')
+    setUbicacionSeleccionada(ubicacion)
+  }
+
+  const elegirBarrio = (nombre: string) => {
+    setBarrioElegido(nombre)
+    const barrio = barrios.find((item) => item.nombre === nombre)
+    if (barrio) seleccionarUbicacion({ latitud: barrio.lat, longitud: barrio.lng })
+  }
+
+  const usarUbicacionActual = () => {
+    if (!navigator.geolocation) { setMensajeUbicacion('No pudimos obtener tu ubicación; tocá el mapa o elegí tu barrio'); return }
+    navigator.geolocation.getCurrentPosition(
+      (posicion) => {
+        const ubicacion = { latitud: posicion.coords.latitude, longitud: posicion.coords.longitude }
+        if (distanciaKm(CORRIENTES, ubicacion) > 20) { setMensajeUbicacion('La ubicación está a más de 20 km de Corrientes y no se puede usar.'); return }
+        setBarrioElegido('')
+        seleccionarUbicacion(ubicacion)
+      },
+      () => setMensajeUbicacion('No pudimos obtener tu ubicación; tocá el mapa o elegí tu barrio'),
+      { enableHighAccuracy: true, timeout: 8000 },
+    )
+  }
 
   const enviarAlerta = async () => {
     if (!ubicacionSeleccionada || !textoMensaje.trim()) return
-
-    setEnviando(true)
-    setMensajeError('')
+    setEnviando(true); setMensajeError('')
     try {
-      await crearReporte({
-        ...ubicacionSeleccionada,
-        texto: textoMensaje.trim(),
-        esDemo: esModoDemo,
-      })
-      setTextoMensaje('')
-      setUbicacionSeleccionada(null)
-    } catch {
-      setMensajeError('No se pudo enviar la alerta. Intentalo nuevamente.')
-    } finally {
-      setEnviando(false)
-    }
+      const textoEnviado = textoMensaje.trim()
+      const respuesta = await crearReporte({ ...ubicacionSeleccionada, texto: textoEnviado, esDemo: esModoDemo, barrio: barrioElegido || undefined })
+      const transitable = respuesta.reporte.esTransitable === null ? 'sin datos' : respuesta.reporte.esTransitable ? 'sí' : 'no'
+      setHistorialChat((historial) => [...historial, { rol: 'vecino', texto: textoEnviado }, { rol: 'bot', texto: `${respuesta.mensajeRespuesta}\n\nExpediente ${respuesta.reporte.expedienteDoco} · Gravedad ${respuesta.reporte.gravedad} · Transitable: ${transitable}` }])
+      setListaReportes(await obtenerReportes(esModoDemo))
+      setUbicacionParaCentrar(ubicacionSeleccionada)
+      setTextoMensaje(''); setUbicacionSeleccionada(null); setBarrioElegido('')
+    } catch { setMensajeError('No se pudo enviar la alerta. Intentalo nuevamente.') }
+    finally { setEnviando(false) }
+  }
+
+  const refrescarReportes = async () => {
+    const reportes = await obtenerReportes(esModoDemo)
+    setListaReportes(reportes)
+    if (reporteSeleccionado) setReporteSeleccionado(reportes.find((reporte) => reporte.id === reporteSeleccionado.id) ?? null)
+  }
+
+  const asignarCuadrilla = async (cuadrilla: string) => {
+    if (!reporteSeleccionado || !cuadrilla) return
+    try {
+      await actualizarEstadoReporte(reporteSeleccionado.id, 'EN_REVISION', cuadrilla)
+      await refrescarReportes()
+      setMensajeOperador(`Asignado a ${cuadrilla}`)
+    } catch { setMensajeOperador('No se pudo asignar la cuadrilla.') }
+  }
+
+  const marcarResuelto = async () => {
+    if (!reporteSeleccionado) return
+    try {
+      await actualizarEstadoReporte(reporteSeleccionado.id, 'RESUELTO')
+      await refrescarReportes()
+      setReporteSeleccionado(null)
+      setMensajeOperador('Reporte marcado como resuelto.')
+    } catch { setMensajeOperador('No se pudo marcar el reporte como resuelto.') }
+  }
+
+  const notificarZona = () => {
+    if (reporteSeleccionado) setMensajeOperador(`Alerta enviada a vecinos de ${reporteSeleccionado.barrio || 'la zona'}`)
   }
 
   const solicitarBoletin = async () => {
     setGenerandoBoletin(true)
-    try {
-      const resultado = await generarBoletin()
-      setBoletinContenido(resultado.boletin)
-    } catch {
-      setMensajeError('No se pudo generar el boletín.')
-    } finally {
-      setGenerandoBoletin(false)
+    try { setBoletinContenido(await generarBoletin(esModoDemo, nivelLluviaSimulada)) }
+    catch { setMensajeError('No se pudo generar el boletín.') }
+    finally { setGenerandoBoletin(false) }
+  }
+
+  const abrirBarrioDesdeBoletin = (nombre: string) => {
+    const barrio = barrios.find((item) => item.nombre === nombre)
+    if (!barrio) return
+    setBoletinContenido(null)
+    setUbicacionParaCentrar({ latitud: barrio.lat, longitud: barrio.lng })
+    setBarrioResaltado(nombre)
+    if (timerResaltado.current) window.clearTimeout(timerResaltado.current)
+    timerResaltado.current = window.setTimeout(() => setBarrioResaltado(null), 6000)
+    if (esModoDemo) {
+      const delBarrio = listaReportes.filter((reporte) => reporte.barrio === nombre && reporte.estado !== 'RESUELTO')
+      const visibles = delBarrio.filter((reporte) => (reporte.umbralLluvia ?? 0) <= nivelLluviaSimulada)
+      if (delBarrio.length > visibles.length) setMensajeOperador('Subí la lluvia simulada para ver todos los reportes de este barrio')
     }
   }
+
+  const textoPlanoBoletin = (boletin: Boletin) => boletin.grupos.flatMap((grupo) => [
+    `${grupo.gravedad === 'GRAVE' ? 'GRAVES' : `${grupo.gravedad}S`} (${grupo.total})`,
+    ...grupo.barrios.map((barrio) => `• ${barrio.nombre}: ${barrio.reportes} ${barrio.reportes === 1 ? 'reporte' : 'reportes'}${barrio.sinPaso > 0 ? `, ${barrio.sinPaso} sin paso` : ''}`),
+  ]).concat(`Acción sugerida: ${boletin.accionSugerida}`).join('\n')
 
   const imprimirBoletin = () => {
     if (!boletinContenido) return
     const ventana = window.open('', '_blank', 'width=800,height=700')
     if (!ventana) return
-    const contenidoSeguro = boletinContenido.replace(/[&<>"']/g, (caracter) => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-    })[caracter] ?? caracter)
-    ventana.document.write(`<!doctype html><html><head><title>Boletín Municipal de Incidencias</title><style>body{font-family:Arial,sans-serif;color:#17212b;max-width:720px;margin:48px auto;line-height:1.6}h1{font-size:22px;border-bottom:2px solid #22c55e;padding-bottom:12px}main{white-space:pre-wrap;font-size:16px}</style></head><body><h1>Boletín Municipal de Incidencias</h1><main>${contenidoSeguro}</main></body></html>`)
-    ventana.document.close()
-    ventana.focus()
-    ventana.print()
+    const seguro = textoPlanoBoletin(boletinContenido).replace(/[&<>"']/g, (caracter) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[caracter] ?? caracter)
+    ventana.document.write(`<!doctype html><html><head><title>Informe de situación</title><style>body{font-family:Arial,sans-serif;color:#17212b;max-width:720px;margin:48px auto;line-height:1.6}h1{font-size:22px;border-bottom:2px solid #22c55e;padding-bottom:12px}main{white-space:pre-wrap;font-size:16px}</style></head><body><h1>Informe de situación</h1><main>${seguro}</main></body></html>`)
+    ventana.document.close(); ventana.focus(); ventana.print()
   }
 
-  return (
-    <main className="aplicacion">
-      <header className="encabezado-mobile">
-        <div className="marca"><span className="marca-punto" /> MuniAlerta</div>
-        <span className="etiqueta-en-vivo"><span /> Monitoreo activo</span>
-      </header>
-
-      <section className="panel-ciudadano">
-        <div className="marca marca-escritorio"><span className="marca-punto" /> MuniAlerta</div>
-        <div className="titulo-panel">
-          <span className="icono-circulo">!</span>
-          <div><p className="sobretitulo">Canal ciudadano</p><h1>Reportá un problema</h1></div>
-        </div>
-        <p className="introduccion">Tu aviso ayuda a la Municipalidad a cuidar las calles de Corrientes.</p>
-
-        <div className="chat">
-          <div className="mensaje-bot">
-            <span className="avatar">MA</span>
-            <p>Hola. ¿Qué está pasando en tu barrio?</p>
-          </div>
-          {ubicacionSeleccionada && (
-            <div className="ubicacion-confirmada">
-              <span>●</span><div><strong>Ubicación lista</strong><small>{ubicacionSeleccionada.latitud.toFixed(4)}, {ubicacionSeleccionada.longitud.toFixed(4)}</small></div>
-            </div>
-          )}
-          <label className="campo-label" htmlFor="mensaje">Descripción del problema</label>
-          <textarea id="mensaje" value={textoMensaje} onChange={(evento) => setTextoMensaje(evento.target.value)} placeholder="Ej: Hay un bache grande en la esquina..." rows={5} />
-          <button className="boton-ubicacion" type="button" onClick={usarUbicacionDePrueba}><span>⌖</span> Usar ubicación de prueba</button>
-          <button className="boton-primario" type="button" disabled={!ubicacionSeleccionada || !textoMensaje.trim() || enviando} onClick={() => void enviarAlerta()}>{enviando ? 'Enviando...' : 'Enviar Alerta'} <span>→</span></button>
-        </div>
-        <p className="ayuda">Al enviar, tu alerta será visible para el equipo municipal.</p>
-      </section>
-
-      <section className="panel-municipal">
-        <div className="barra-controles">
-          <div><p className="sobretitulo">Centro de operaciones</p><h2>Mapa de incidencias</h2></div>
-          <div className="controles-derecha">
-            <button className="boton-boletin" type="button" disabled={generandoBoletin} onClick={() => void solicitarBoletin()}>{generandoBoletin ? 'Generando...' : '✨ Generar Informe IA'}</button>
-            <label className="control-demo"><span>Modo Demo</span><input type="checkbox" checked={esModoDemo} onChange={(evento) => setEsModoDemo(evento.target.checked)} /><i /></label>
-            <label className="control-lluvia"><span>Lluvia simulada <strong>{nivelLluviaSimulada} mm</strong></span><input type="range" min="0" max="100" value={nivelLluviaSimulada} onChange={(evento) => setNivelLluviaSimulada(Number(evento.target.value))} /></label>
-          </div>
-        </div>
-        <div className="resumen-mapa"><span><i className="punto-verde" /> {reportesVisibles.length} alertas visibles</span><span className="leyenda"><i className="punto verde" /> Leve <i className="punto amarillo" /> Moderado <i className="punto rojo" /> Grave</span></div>
-        <div className="mapa-contenedor">
-          <MapContainer center={CENTRO_MAPA} zoom={13} className="mapa" zoomControl={true}>
-            <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            {reportesVisibles.map((reporte) => (
-              <CircleMarker key={reporte.id} center={[reporte.latitud, reporte.longitud]} radius={9} pathOptions={{ color: coloresGravedad[reporte.gravedad], fillColor: coloresGravedad[reporte.gravedad], fillOpacity: 0.82, weight: 2 }} eventHandlers={{ click: () => setReporteSeleccionado(reporte) }}>
-                <Popup><strong>{reporte.expedienteDoco}</strong><br />{reporte.descripcion}</Popup>
-              </CircleMarker>
-            ))}
-          </MapContainer>
-          {cargando && <div className="estado-mapa">Cargando reportes...</div>}
-          {mensajeError && <div className="aviso-error">{mensajeError}</div>}
-        </div>
-        {reporteSeleccionado && <aside className="detalle-reporte"><button type="button" aria-label="Cerrar detalle" onClick={() => setReporteSeleccionado(null)}>×</button><span className="sobretitulo">Reporte seleccionado</span><h3>{reporteSeleccionado.expedienteDoco}</h3><p>{reporteSeleccionado.descripcion}</p><span className={`estado estado-${reporteSeleccionado.estado.toLowerCase()}`}>{reporteSeleccionado.estado.replace('_', ' ')}</span></aside>}
-      </section>
-      {boletinContenido && <div className="modal-fondo" role="presentation" onClick={() => setBoletinContenido(null)}><section className="modal-boletin" role="dialog" aria-modal="true" aria-labelledby="titulo-boletin" onClick={(evento) => evento.stopPropagation()}><div className="modal-encabezado"><div><span className="sobretitulo">Informe generado por IA</span><h2 id="titulo-boletin">Boletín Municipal de Incidencias</h2></div><button className="modal-cerrar-icono" type="button" aria-label="Cerrar boletín" onClick={() => setBoletinContenido(null)}>×</button></div><div className="boletin-texto">{boletinContenido}</div><div className="modal-acciones"><button className="boton-secundario" type="button" onClick={() => setBoletinContenido(null)}>Cerrar</button><button className="boton-primario boton-imprimir" type="button" onClick={imprimirBoletin}>🖨️ Imprimir Reporte</button></div></section></div>}
-    </main>
-  )
+  return <main className="aplicacion">
+    <header className="encabezado-mobile"><div className="marca"><span className="marca-punto" /> MuniAlerta</div><span className="etiqueta-en-vivo"><span /> Monitoreo activo</span></header>
+    <section className="panel-ciudadano">
+      <div className="marca marca-escritorio"><span className="marca-punto" /> MuniAlerta</div>
+      <div className="titulo-panel"><span className="icono-circulo">!</span><div><p className="sobretitulo">Canal ciudadano</p><h1>Reportá un problema</h1></div></div>
+      <p className="introduccion">Tu aviso ayuda a la Municipalidad a cuidar las calles de Corrientes.</p>
+      <div className="chat">
+        <div className="mensaje-bot"><span className="avatar">MA</span><p>Hola. ¿Qué está pasando en tu barrio?</p></div>
+        {historialChat.map((burbuja, indice) => <div className={`burbuja-chat burbuja-${burbuja.rol}`} key={`${burbuja.rol}-${indice}`}>{burbuja.rol === 'bot' && <span className="avatar">MA</span>}<p>{burbuja.texto}</p></div>)}
+        {ubicacionSeleccionada && <div className="ubicacion-confirmada"><span>●</span><div><strong>Ubicación lista</strong><small>{ubicacionSeleccionada.latitud.toFixed(4)}, {ubicacionSeleccionada.longitud.toFixed(4)}</small></div></div>}
+        <label className="campo-label" htmlFor="mensaje">Descripción del problema</label>
+        <textarea id="mensaje" value={textoMensaje} onChange={(evento) => setTextoMensaje(evento.target.value)} placeholder="Ej: Hay un bache grande en la esquina..." rows={5} />
+        <label className="campo-label" htmlFor="barrio">Elegí tu barrio</label>
+        <select id="barrio" className="selector-ubicacion" value={barrioElegido} onChange={(evento) => elegirBarrio(evento.target.value)}><option value="">Elegí tu barrio...</option>{barrios.map((barrio) => <option key={barrio.nombre} value={barrio.nombre}>{barrio.nombre}</option>)}</select>
+        <button className="boton-ubicacion" type="button" onClick={usarUbicacionActual}>⌖ Usar mi ubicación actual</button>
+        <p className="ayuda-ubicacion">También podés hacer clic directamente en el mapa para marcar el punto.</p>{mensajeUbicacion && <p className="error-ubicacion">{mensajeUbicacion}</p>}
+        <button className="boton-primario" type="button" disabled={!ubicacionSeleccionada || !textoMensaje.trim() || enviando} onClick={() => void enviarAlerta()}>{enviando ? 'Enviando...' : 'Enviar Alerta'} <span>→</span></button>
+      </div>
+      <p className="ayuda">Al enviar, tu alerta será visible para el equipo municipal.</p>
+    </section>
+    <section className="panel-municipal">
+      <div className="barra-controles"><div><p className="sobretitulo">Centro de operaciones</p><h2>Mapa de incidencias</h2></div><div className="controles-derecha"><button className="boton-boletin" type="button" disabled={generandoBoletin} onClick={() => void solicitarBoletin()}>{generandoBoletin ? 'Generando...' : 'Generar informe'}</button><label className="control-demo"><span>Modo Demo</span><input type="checkbox" checked={esModoDemo} onChange={(evento) => setEsModoDemo(evento.target.checked)} /><i /></label><label className="control-lluvia"><span>Lluvia simulada <strong>{nivelLluviaSimulada} mm</strong></span><input type="range" min="0" max="100" value={nivelLluviaSimulada} onChange={(evento) => setNivelLluviaSimulada(Number(evento.target.value))} /></label></div></div>
+      <div className="franja-informacion"><span>◷ {horaVisible}</span><span>🌡 {temperaturaVisible}</span><span>Viento: {vientoVisible === null ? '--' : `${vientoVisible.toFixed(0)} km/h`} · ráfagas {rafagasVisible === null ? '--' : `${rafagasVisible.toFixed(0)} km/h`} · {esModoDemo ? 'Sur' : clima.direccion}</span>{esModoDemo && <span className="etiqueta-escenario">Escenario simulado</span>}{esModoDemo ? <span className="radar-inactivo">Disponible en modo real</span> : <label className="control-radar"><span>Radar</span><input type="checkbox" checked={radarActivo} onChange={(evento) => { setRadarError(false); setRadarActivo(evento.target.checked) }} /><i /></label>}{radarError && <small>Radar no disponible</small>}</div>
+      {radarActivo && !esModoDemo && radarFrames.length > 0 && <div className="controles-radar"><button type="button" onClick={() => setRadarReproduciendo((reproduciendo) => !reproduciendo)}>{radarReproduciendo ? 'Pausar' : 'Reproducir'}</button><span>{horaFrame(radarFrames[indiceRadar].time)}</span><input type="range" min="0" max={radarFrames.length - 1} value={indiceRadar} onChange={(evento) => { setRadarReproduciendo(false); setIndiceRadar(Number(evento.target.value)) }} /></div>}
+      <div className="tarjetas-metricas"><div><strong>{reportesActivos.length}</strong><span>Reportes activos</span></div><div><strong className={emergenciasGraves.length > 0 ? 'numero-grave' : ''}>{emergenciasGraves.length}</strong><span>Emergencias graves</span></div><div><strong>{lluviaVisible === null ? '--' : lluviaVisible.toFixed(1)}</strong><span>Lluvia última hora (mm)</span></div><div><strong>{paranaVisible}</strong><span>Altura del Paraná (m) {!esModoDemo && <small>sin datos</small>}</span></div></div>
+      <div className="resumen-mapa"><span><i className="punto-verde" /> {reportesVisibles.length} alertas visibles</span><span className="leyenda"><i className="punto verde" /> Leve <i className="punto amarillo" /> Moderado <i className="punto rojo" /> Grave <i className="leyenda-linea charco" /> Charco <i className="leyenda-linea calle" /> Calle anegada</span></div>{radarActivo && !esModoDemo && <div className="leyenda-radar">Débil <i /> Intensa</div>}
+      <div className="mapa-contenedor">
+        <MapContainer center={CENTRO_MAPA} zoom={13} className="mapa" zoomControl>
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <InteraccionMapa onSeleccionar={seleccionarUbicacionEnMapa} ubicacionParaCentrar={ubicacionParaCentrar} />
+          {radarActivo && !esModoDemo && radarFrames[indiceRadar] && <TileLayer url={`${radarFrames[indiceRadar].host}${radarFrames[indiceRadar].path}/256/{z}/{x}/{y}/2/1_1.png`} opacity={0.6} maxNativeZoom={7} attribution="RainViewer" eventHandlers={{ tileerror: () => { setRadarActivo(false); setRadarError(true) } }} />}
+          <CapaAgua reportes={reportesVisibles} nivelLluvia={nivelLluviaSimulada} esModoDemo={esModoDemo} />
+          {ubicacionSeleccionada && <CircleMarker center={[ubicacionSeleccionada.latitud, ubicacionSeleccionada.longitud]} radius={11} pathOptions={OPCIONES_UBICACION} />}
+          <PinesMapa reportes={reportesVisibles} barrioResaltado={barrioResaltado} onSeleccionar={setReporteSeleccionado} />
+        </MapContainer>
+        {cargando && <div className="estado-mapa">Cargando reportes...</div>}{mensajeError && <div className="aviso-error">{mensajeError}</div>}
+      </div>
+      {mensajeOperador && <div className="aviso-operador">{mensajeOperador}<button type="button" onClick={() => setMensajeOperador('')}>×</button></div>}
+      {reporteSeleccionado && <aside className="detalle-reporte"><button className="detalle-cerrar" type="button" aria-label="Cerrar detalle" onClick={() => setReporteSeleccionado(null)}>×</button><span className="sobretitulo">Reporte seleccionado</span><h3>{reporteSeleccionado.expedienteDoco}</h3><p>{reporteSeleccionado.barrio} · {reporteSeleccionado.descripcion}</p><span className={`estado estado-${reporteSeleccionado.estado.toLowerCase()}`}>{reporteSeleccionado.estado.replace('_', ' ')}</span>{reporteSeleccionado.cuadrilla && <p className="cuadrilla-asignada">Asignado a {reporteSeleccionado.cuadrilla}</p>}<div className="acciones-operador"><select value="" onChange={(evento) => void asignarCuadrilla(evento.target.value)}><option value="">Asignar cuadrilla</option>{CUADRILLAS.map((cuadrilla) => <option key={cuadrilla} value={cuadrilla}>{cuadrilla}</option>)}</select><button type="button" onClick={notificarZona}>Notificar zona</button><button type="button" onClick={() => void marcarResuelto()}>Marcar resuelto</button></div></aside>}
+    </section>
+    {boletinContenido && <div className="modal-fondo" role="presentation" onClick={() => setBoletinContenido(null)}><section className="modal-boletin" role="dialog" aria-modal="true" aria-labelledby="titulo-boletin" onClick={(evento) => evento.stopPropagation()}><div className="modal-encabezado"><div><span className="sobretitulo">Informe de situación</span><h2 id="titulo-boletin">Boletín Municipal de Incidencias</h2></div><button className="modal-cerrar-icono" type="button" aria-label="Cerrar informe" onClick={() => setBoletinContenido(null)}>×</button></div><div className="boletin-estructurado">{boletinContenido.grupos.map((grupo) => <section className="grupo-boletin" key={grupo.gravedad}><h3><i className={`punto-grupo ${grupo.gravedad.toLowerCase()}`} />{grupo.gravedad === 'GRAVE' ? 'GRAVES' : `${grupo.gravedad}S`} ({grupo.total})</h3>{grupo.barrios.map((barrio) => <button className="barrio-boletin" type="button" key={barrio.nombre} onClick={() => abrirBarrioDesdeBoletin(barrio.nombre)}>{barrio.nombre}: {barrio.reportes} {barrio.reportes === 1 ? 'reporte' : 'reportes'}{barrio.sinPaso > 0 && <span> · ⚠️ {barrio.sinPaso} sin paso</span>}</button>)}</section>)}{boletinContenido.grupos.length === 0 && <p className="boletin-vacio">Sin incidentes activos.</p>}<p className="accion-boletin"><strong>Acción sugerida:</strong> {boletinContenido.accionSugerida}</p></div><div className="modal-acciones"><button className="boton-secundario" type="button" onClick={() => setBoletinContenido(null)}>Cerrar</button><button className="boton-primario boton-imprimir" type="button" onClick={imprimirBoletin}>🖨️ Imprimir Reporte</button></div></section></div>}
+  </main>
 }
 
 export default App

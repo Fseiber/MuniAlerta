@@ -26,6 +26,9 @@ model Reporte {
   latitud        Float
   longitud       Float
   barrio         String?
+  trazado        Json?
+  radioCharcoM   Int?
+  cuadrilla      String?
   descripcion    String
   gravedad       Gravedad      @default(MODERADO)
   esTransitable  Boolean?
