@@ -1,6 +1,6 @@
-:root { --fondo: #10151b; --panel: #171e26; --panel-2: #1d2630; --borde: #2c3844; --texto: #e8edf3; --suave: #8b99a8; --verde: #4ade80; --azul: #59a9ff; }
+:root { --fondo: #0f172a; --panel: #1e293b; --panel-2: #334155; --borde: #334155; --texto: #f8fafc; --suave: #94a3b8; --verde: #4ade80; --azul: #59a9ff; }
 .aplicacion { min-height: 100vh; display: grid; grid-template-columns: 380px minmax(0, 1fr); background: var(--fondo); }
-.panel-ciudadano { padding: 34px 30px; background: #141b22; border-right: 1px solid var(--borde); display: flex; flex-direction: column; }
+.panel-ciudadano { padding: 34px 30px; background: var(--panel); border-right: 1px solid var(--borde); display: flex; flex-direction: column; }
 .panel-municipal { min-width: 0; padding: 28px; display: flex; flex-direction: column; position: relative; }
 .marca { font: 700 20px 'Space Grotesk', sans-serif; letter-spacing: -.5px; color: #fff; display: flex; gap: 9px; align-items: center; }
 .marca-punto { width: 11px; height: 11px; border-radius: 50%; background: var(--verde); box-shadow: 0 0 14px #4ade8099; }
@@ -57,24 +57,11 @@ textarea::placeholder { color: #627080; }
 .mapa-contenedor { position: relative; flex: 1; min-height: 520px; overflow: hidden; border-radius: 0 0 9px 9px; border: 1px solid var(--borde); }
 .mapa { height: 100%; min-height: 520px; width: 100%; filter: saturate(.7) brightness(.8); }
 .estado-mapa, .aviso-error { position: absolute; z-index: 1000; top: 16px; left: 50%; transform: translateX(-50%); padding: 8px 13px; border-radius: 6px; background: #17212bcc; color: #c9d4de; font-size: 12px; }.aviso-error { top: auto; bottom: 15px; color: #ffb4b4; background: #4d2020e8; }
-.detalle-reporte { position: absolute; z-index: 1100; right: 45px; bottom: 45px; width: 240px; padding: 17px; background: #18212aeF; border: 1px solid #3d5368; border-radius: 9px; box-shadow: 0 8px 25px #0007; }.detalle-cerrar { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: #9caab7; font-size: 21px; }.detalle-reporte h3 { font-size: 15px; margin: 10px 0 6px; }.detalle-reporte p { margin: 0 0 13px; color: #afbbc6; font-size: 12px; line-height: 1.4; }.estado { padding: 4px 7px; border-radius: 4px; background: #263d31; color: var(--verde); font-size: 10px; text-transform: uppercase; }
+.detalle-reporte { position: absolute; z-index: 1100; right: 45px; bottom: 45px; width: 240px; padding: 17px; background: var(--panel); border: 1px solid #3d5368; border-radius: 9px; box-shadow: 0 8px 25px #0007; }.detalle-cerrar { position: absolute; top: 8px; right: 10px; background: none; border: 0; color: #9caab7; font-size: 21px; }.detalle-reporte h3 { font-size: 15px; margin: 10px 0 6px; }.detalle-reporte p { margin: 0 0 13px; color: #afbbc6; font-size: 12px; line-height: 1.4; }.estado { padding: 4px 7px; border-radius: 4px; background: #263d31; color: var(--verde); font-size: 10px; text-transform: uppercase; }
 .cuadrilla-asignada { color: #a7d5ff !important; }.acciones-operador { display: grid; gap: 7px; margin-top: 15px; }.acciones-operador select, .acciones-operador button { width: 100%; padding: 8px; border: 1px solid #3b5368; border-radius: 6px; color: #c7d5e1; background: #202d39; font-size: 11px; }.acciones-operador button:hover { border-color: var(--azul); }.aviso-operador { position: absolute; z-index: 1200; right: 42px; bottom: 20px; max-width: 300px; padding: 10px 30px 10px 12px; color: #d9fbe4; background: #215337ee; border: 1px solid #4c9b69; border-radius: 7px; font-size: 12px; }.aviso-operador button { position: absolute; top: 4px; right: 7px; border: 0; color: #c4e8ce; background: transparent; font-size: 17px; }
-.modal-fondo { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 24px; background: #070b0fcc; backdrop-filter: blur(5px); }.modal-boletin { width: min(680px, 100%); max-height: min(720px, 90vh); overflow: auto; padding: 26px; color: #dbe5ed; background: #1a242e; border: 1px solid #405466; border-radius: 13px; box-shadow: 0 22px 70px #000b; text-align: left; }.modal-encabezado { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid #344553; }.modal-encabezado h2 { font-size: 21px; }.modal-cerrar-icono { border: 0; background: none; color: #9babb9; font-size: 27px; line-height: 1; }.modal-cerrar-icono:hover { color: #fff; }.boletin-texto { min-height: 150px; padding: 23px 4px 27px; color: #d5dee6; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }.modal-acciones { display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid #344553; }.boton-secundario { padding: 10px 14px; border: 1px solid var(--borde); border-radius: 7px; color: #b5c1cc; background: transparent; font-size: 13px; font-weight: 600; }.boton-secundario:hover { color: #fff; border-color: #718496; }.boton-imprimir { width: auto; margin: 0; }
+.modal-fondo { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 24px; background: #070b0fcc; backdrop-filter: blur(5px); }.modal-boletin { width: min(680px, 100%); max-height: min(720px, 90vh); overflow: auto; padding: 26px; color: #dbe5ed; background: var(--panel); border: 1px solid #405466; border-radius: 13px; box-shadow: 0 22px 70px #000b; text-align: left; }.modal-encabezado { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 18px; border-bottom: 1px solid #344553; }.modal-encabezado h2 { font-size: 21px; }.modal-cerrar-icono { border: 0; background: none; color: #9babb9; font-size: 27px; line-height: 1; }.modal-cerrar-icono:hover { color: #fff; }.boletin-texto { min-height: 150px; padding: 23px 4px 27px; color: #d5dee6; font-size: 15px; line-height: 1.7; white-space: pre-wrap; }.modal-acciones { display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid #344553; }.boton-secundario { padding: 10px 14px; border: 1px solid var(--borde); border-radius: 7px; color: #b5c1cc; background: transparent; font-size: 13px; font-weight: 600; }.boton-secundario:hover { color: #fff; border-color: #718496; }.boton-imprimir { width: auto; margin: 0; }
 @media (max-width: 850px) { .aplicacion { display: block; }.encabezado-mobile { display: flex; padding: 20px; justify-content: space-between; border-bottom: 1px solid var(--borde); }.marca-escritorio { display: none; }.etiqueta-en-vivo { color: var(--suave); font-size: 11px; }.etiqueta-en-vivo span { display: inline-block; width: 6px; height: 6px; background: var(--verde); border-radius: 50%; margin-right: 6px; }.panel-ciudadano { border-right: 0; padding: 28px 20px; }.titulo-panel { margin-top: 0; }.panel-municipal { padding: 25px 20px; }.barra-controles { align-items: flex-start; flex-direction: column; }.controles-derecha { width: 100%; justify-content: space-between; }.tarjetas-metricas { grid-template-columns: repeat(2, 1fr); }.franja-informacion { flex-wrap: wrap; gap: 10px; }.franja-informacion .control-radar, .radar-inactivo { margin-left: 0; }.mapa-contenedor, .mapa { min-height: 470px; } }
 @media (max-width: 500px) { .controles-derecha { align-items: flex-start; flex-direction: column; gap: 15px; }.resumen-mapa { gap: 8px; flex-direction: column; }.leyenda { flex-wrap: wrap; }.mapa-contenedor, .mapa { min-height: 400px; }.modal-fondo { padding: 12px; }.modal-boletin { padding: 20px; }.modal-acciones { flex-direction: column-reverse; }.modal-acciones button { width: 100%; } }
- .selector-categorias { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 6px 0 14px; }
- .filtros-categoria { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 14px; }
- .selector-categorias button, .filtros-categoria button { border: 1px solid #d7dee8; background: #fff; border-radius: 999px; padding: 7px 10px; cursor: pointer; }
- .selector-categorias .categoria-activa, .filtros-categoria .categoria-activa { background: #17212b; color: #fff; }
- .selector-categorias-error { border: 2px solid #dc2626; border-radius: 12px; padding: 6px; }
- .filtros-categoria { align-items: center; }
- .filtros-categoria strong { margin-right: 4px; }
- .filtros-categoria button { border-radius: 8px; }
- .filtros-categoria .filtro-activo { font-weight: 700; }
- .filtro-seleccionado { margin: 5px 0; color: #475569; }
- .filtro-seleccionado button { border: 0; background: transparent; color: #2563eb; cursor: pointer; text-decoration: underline; }
- .sugerencia-ia { padding: 8px; border-left: 3px solid #8b5cf6; background: #f5f3ff; }
- .sugerencia-ia button { display: block; margin-top: 6px; }
  .insignia-sello { display: inline-block; margin: 5px 0 10px; padding: 5px 7px; border-radius: 5px; font-size: 10px; }.insignia-sello.anclado { color: #b8f5c9; background: #1d4d32; }.insignia-sello.pendiente { color: #c7ddff; background: #243d5b; animation: pulso-sello 1.8s ease-in-out infinite; }.insignia-sello.error { color: #ffd3b3; background: #593421; }.insignia-sello.apagado { color: #778594; background: #26303a; opacity: .75; }.insignia-sello button { margin-left: 6px; border: 0; color: #fff; background: transparent; text-decoration: underline; cursor: pointer; }
  @keyframes pulso-sello { 50% { opacity: .55; } }
  .boton-verificar { width: 100%; margin: 4px 0 10px; padding: 7px; border: 1px solid #3b5368; border-radius: 6px; color: #c7d5e1; background: #202d39; font-size: 11px; }.resultado-verificacion p { margin: 5px 0; color: #c7e6d0; font-size: 11px; }.timeline-sello { display: grid; gap: 8px; margin: 8px 0 13px; padding-left: 9px; border-left: 2px solid #3b5368; }.timeline-sello div { display: grid; gap: 3px; }.timeline-sello strong { color: #d8e6f2; font-size: 11px; }.timeline-sello small { color: #94a5b5; font-size: 10px; }.timeline-sello a, .burbuja-bot a { color: #93c5fd; font-size: 10px; }.registro-publico { margin-top: 14px; border: 1px solid var(--borde); border-radius: 8px; background: #18222c; }.registro-toggle { display: flex; justify-content: space-between; width: 100%; padding: 11px 13px; border: 0; color: #c9d8e6; background: transparent; text-align: left; cursor: pointer; }.registro-contenido { padding: 0 13px 13px; color: #aab8c5; font-size: 11px; }.registro-contenido a { color: #93c5fd; }.registro-contenido > button { padding: 5px 9px; border: 1px solid #3b5368; border-radius: 5px; color: #c7d5e1; background: #202d39; }.registro-item { padding: 7px 0; border-bottom: 1px solid #2b3946; }.registro-item em { display: block; color: #ffadad; font-style: normal; }
@@ -83,4 +70,256 @@ textarea::placeholder { color: #627080; }
  .pin-categoria span { position: relative; display: grid; place-items: center; width: 34px; height: 34px; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 8px #17212b66; font-size: 19px; }
  .pin-categoria b { position: absolute; top: -9px; right: -8px; width: 17px; height: 17px; border-radius: 50%; background: #dc2626; color: #fff; font: 700 12px/17px sans-serif; text-align: center; }
  .pin-escalado span { animation: pulso-escalado 1.4s infinite; }
- @keyframes pulso-escalado { 0%, 100% { box-shadow: 0 0 0 0 #dc262688, 0 2px 8px #17212b66; } 50% { box-shadow: 0 0 0 9px #dc262600, 0 2px 8px #17212b66; } }
+@keyframes pulso-escalado { 0%, 100% { box-shadow: 0 0 0 0 #dc262688, 0 2px 8px #17212b66; } 50% { box-shadow: 0 0 0 9px #dc262600, 0 2px 8px #17212b66; } }
+
+/* Sistema visual oscuro y accesible */
+:root {
+  --acento-neutro: #334155;
+  --ambar-fondo: #3a2a13;
+  --ambar-texto: #ffe2a8;
+  --texto-chip-oscuro: #071018;
+}
+
+html, body { scrollbar-width: thin; scrollbar-color: #536273 #11171d; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: #11171d; }
+*::-webkit-scrollbar-thumb { border: 2px solid #11171d; border-radius: 999px; background: #536273; }
+*::-webkit-scrollbar-thumb:hover { background: #718395; }
+
+.panel-ciudadano { min-height: 0; max-height: 100vh; overflow-y: auto; }
+.chat { gap: 22px; }
+.campo-grupo { display: grid; gap: 8px; min-width: 0; }
+.campo-label, .titulo-seccion { margin-bottom: 0; color: #c2ccd6; }
+textarea { min-height: 108px; padding: 14px; }
+.selector-categoria { position: relative; width: 100%; min-width: 0; }
+.selector-categoria-select, .selector-ubicacion, .acciones-operador select {
+  width: 100%; min-width: 0; min-height: 44px; padding: 10px 40px 10px 12px;
+  appearance: none; color: var(--texto); background-color: #11171d; border: 1px solid var(--borde);
+  border-radius: 8px; color-scheme: dark; font-size: 13px; text-overflow: ellipsis;
+}
+.selector-categoria-select:focus-visible, .selector-ubicacion:focus-visible, .acciones-operador select:focus-visible { border-color: var(--azul); }
+.selector-categoria-select.selector-categoria-error { border: 2px solid #ff6b6b; }
+.selector-categoria-flecha { position: absolute; top: 17px; right: 15px; width: 9px; height: 9px; border-right: 2px solid #d5dee7; border-bottom: 2px solid #d5dee7; transform: rotate(45deg); pointer-events: none; }
+.selector-ubicacion { padding-right: 12px; }
+.aviso-911 { margin: 0; color: #ffe2b8; background: #382a1c; border-color: #76552c; font-size: 12px; }
+.bloque-foto { padding: 15px; }
+.bloque-foto .titulo-seccion { margin-bottom: 10px; }
+.visualmente-oculto:focus-visible + .boton-foto { outline: 3px solid var(--azul); outline-offset: 3px; }
+.chat > small { color: #c2ccd6; font-size: 11px; }
+
+.boton, .aplicacion button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 44px; padding: 10px 14px; border: 1px solid #3b4a58; border-radius: 8px;
+  color: #e8edf3; background: var(--panel-2); font: 600 13px/1.25 'DM Sans', sans-serif;
+  text-align: center; text-decoration: none; cursor: pointer; transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.boton:hover:not(:disabled), .aplicacion button:hover:not(:disabled) { border-color: #718395; background: #263441; }
+.boton:active:not(:disabled), .aplicacion button:active:not(:disabled) { background: #303f4d; }
+.boton--primario, .aplicacion button.boton--primario { color: #092218; background: var(--verde); border-color: var(--verde); }
+.boton--primario:hover:not(:disabled), .aplicacion button.boton--primario:hover:not(:disabled) { color: #071d12; background: #72f39b; border-color: #72f39b; }
+.boton--peligro, .aplicacion button.boton--peligro { color: #fff; background: #8b2525; border-color: #a83b3b; }
+.boton--peligro:hover:not(:disabled), .aplicacion button.boton--peligro:hover:not(:disabled) { color: #fff; background: #a52d2d; border-color: #d45b5b; }
+.boton--activo, .aplicacion button.boton--activo { color: #e5f5eb; background: #234b38; border-color: #4a9c6d; box-shadow: 0 0 0 2px #4ade8040; }
+.boton:disabled, .aplicacion button:disabled { opacity: .52; cursor: not-allowed; box-shadow: none; }
+.boton-primario, .boton-boletin, .boton-ubicacion, .boton-foto, .boton-verificar, .boton-secundario, .boton-imprimir { min-height: 44px; }
+.boton-primario { width: 100%; margin-top: 0; }
+.boton-ubicacion { width: 100%; margin-top: 0; color: #dce7f0; }
+.boton-boletin { white-space: nowrap; }
+.boton-foto { width: 100%; color: #dce7f0; border-style: dashed; }
+.boton-verificar { width: 100%; margin: 4px 0 10px; }
+.boton-imprimir { width: auto; margin: 0; }
+.modal-acciones .boton-secundario { color: #e1e9f0; }
+.detalle-cerrar, .modal-cerrar-icono, .aviso-operador button { width: 44px; min-width: 44px; padding: 0 !important; }
+.aviso-operador button { position: absolute; top: 4px; right: 7px; border: 0; color: #e1f6e7; background: transparent; font-size: 17px; }
+.sugerencia-ia { color: #e5d9ff; background: #211a30; border-left-color: #a78bfa; }
+
+.filtros-categoria { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 14px; }
+.filtros-categoria strong { flex: 0 0 auto; margin-right: 4px; color: #d5dee7; }
+.aplicacion .filtros-categoria button.filtro-chip {
+  flex: 0 0 auto; min-height: 40px; padding: 8px 12px; border: 1px solid #3b4856;
+  border-radius: 999px; color: #cbd5df; background: var(--panel); font-size: 12px; font-weight: 500;
+}
+.aplicacion .filtros-categoria button.filtro-chip:hover:not(:disabled) { border-color: #8795a3; background: #222d38; }
+.aplicacion .filtros-categoria button.filtro-chip.filtro-activo { font-weight: 700; box-shadow: 0 0 0 2px #dce6ef45; }
+.aplicacion .filtros-categoria button.filtro-chip.filtro-todas { color: #fff; background: var(--acento-neutro); border-color: #64748b; }
+.aplicacion .filtros-categoria button[data-categoria="ANEGAMIENTO"].filtro-activo { color: var(--texto-chip-oscuro); background: #3b82f6; border-color: #3b82f6; }
+.aplicacion .filtros-categoria button[data-categoria="ARBOLADO"].filtro-activo { color: var(--texto-chip-oscuro); background: #22c55e; border-color: #22c55e; }
+.aplicacion .filtros-categoria button[data-categoria="BASURA_CLOACAS"].filtro-activo { color: #fff; background: #a16207; border-color: #a16207; }
+.aplicacion .filtros-categoria button[data-categoria="VIAL"].filtro-activo { color: var(--texto-chip-oscuro); background: #f97316; border-color: #f97316; }
+.aplicacion .filtros-categoria button[data-categoria="LUMINARIA"].filtro-activo { color: var(--texto-chip-oscuro); background: #facc15; border-color: #facc15; }
+.aplicacion .filtros-categoria button[data-categoria="SEMAFORO"].filtro-activo { color: var(--texto-chip-oscuro); background: #14b8a6; border-color: #14b8a6; }
+.aplicacion .filtros-categoria button[data-categoria="CABLE_ELECTRICO"].filtro-activo { color: #000; background: #a855f7; border-color: #a855f7; }
+.filtro-seleccionado { margin: 5px 0; color: #cbd5df; }
+.filtro-seleccionado button { min-height: 36px !important; padding: 5px 8px !important; color: #9ccaff !important; background: transparent !important; text-decoration: underline; }
+
+.franja-informacion { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; min-height: unset; margin-bottom: 12px; padding: 0; color: #e8edf3; background: transparent; border: 0; font-size: 12px; }
+.clima-pildora { display: flex; min-width: 0; overflow: hidden; color: #fff; background: #111a22eF; border: 1px solid #3b4856; border-radius: 12px; }
+.clima-segmento { display: flex; flex-direction: column; justify-content: center; gap: 3px; min-width: 80px; padding: 9px 13px; }
+.clima-segmento + .clima-segmento { border-left: 1px solid #52606e; }
+.clima-segmento small { color: #c3ced8; font-size: 10px; line-height: 1.2; }
+.clima-segmento strong { color: #fff; font-size: 13px; line-height: 1.35; }
+.etiqueta-escenario { padding: 7px 10px; color: var(--ambar-texto); background: var(--ambar-fondo); border: 1px solid #795b2f; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.radar-inactivo { margin-left: auto; color: #b9c5d1; font-size: 11px; }
+.control-demo, .control-radar { position: relative; }
+.control-demo input, .control-radar input { display: block; position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
+.control-demo input:focus-visible + i, .control-radar input:focus-visible + i { outline: 3px solid var(--azul); outline-offset: 3px; }
+.acciones-operador select { padding-right: 12px; }
+.detalle-reporte { max-height: min(68vh, 620px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: #536273 #11171d; }
+.modal-boletin { scrollbar-width: thin; scrollbar-color: #536273 #11171d; }
+.timeline-sello { max-height: 240px; overflow-y: auto; }
+
+.aplicacion :focus-visible { outline: 3px solid var(--azul); outline-offset: 3px; }
+.selector-categoria-select:focus-visible, .selector-ubicacion:focus-visible, .acciones-operador select:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { color: #e8edf3; background: #171e26; }
+.leaflet-popup-content-wrapper { border: 1px solid #536273; box-shadow: 0 3px 14px #0009; }
+.leaflet-popup-content { color: #e8edf3; }
+.leaflet-popup-content a, .leaflet-container a.leaflet-popup-close-button { color: #9ccaff; }
+.leaflet-bar a, .leaflet-bar a:hover { color: #e8edf3; background: #171e26; border-bottom-color: #3b4856; }
+.leaflet-bar a:hover { background: #263441; }
+.leaflet-control-attribution { color: #d2dbe4; background: #111a22eF !important; }
+.leaflet-control-attribution a { color: #9ccaff; }
+
+@media (max-width: 850px) {
+  .panel-ciudadano { max-height: none; overflow: visible; }
+  .filtros-categoria { flex-wrap: nowrap; overflow-x: auto; padding: 3px 2px 8px; scrollbar-width: none; }
+  .filtros-categoria::-webkit-scrollbar { display: none; }
+  .franja-informacion { align-items: stretch; }
+  .clima-pildora { flex: 1 1 100%; }
+  .clima-segmento { flex: 1 1 0; min-width: 0; }
+}
+@media (max-width: 500px) {
+  .franja-informacion { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clima-pildora { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-column: 1 / -1; }
+  .clima-segmento { min-width: 0; padding: 10px 11px; }
+  .clima-segmento + .clima-segmento { border-left: 0; }
+  .clima-segmento:nth-child(even) { border-left: 1px solid #52606e; }
+  .clima-segmento:nth-child(n + 3) { border-top: 1px solid #52606e; }
+  .etiqueta-escenario { justify-self: start; }
+  .radar-inactivo { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Modo claro. El modo oscuro sigue siendo la paleta base y se activa con .dark. */
+html.light {
+  color-scheme: light;
+  --fondo: #f1f5f9;
+  --panel: #ffffff;
+  --panel-2: #f8fafc;
+  --borde: #cbd5e1;
+  --texto: #0f172a;
+  --suave: #475569;
+  --azul: #1d4ed8;
+}
+html.light, html.light body { color: #0f172a; background: #f1f5f9; }
+html.light, html.light body { scrollbar-color: #94a3b8 #e2e8f0; }
+html.light *::-webkit-scrollbar-track { background: #e2e8f0; }
+html.light *::-webkit-scrollbar-thumb { border-color: #e2e8f0; background: #94a3b8; }
+html.light *::-webkit-scrollbar-thumb:hover { background: #64748b; }
+html.light .aplicacion, .aplicacion.tema-light { color: #0f172a; background: #f1f5f9; }
+html.light .panel-ciudadano, .aplicacion.tema-light .panel-ciudadano { background: #ffffff; border-color: #cbd5e1; }
+html.light .panel-municipal, .aplicacion.tema-light .panel-municipal { color: #0f172a; }
+html.light h1, html.light h2, html.light h3,
+.aplicacion.tema-light h1, .aplicacion.tema-light h2, .aplicacion.tema-light h3,
+html.light .marca, .aplicacion.tema-light .marca { color: #0f172a; }
+html.light .chat, .aplicacion.tema-light .chat { background: #ffffff; border-color: #cbd5e1; box-shadow: 0 12px 30px #0f172a12; }
+html.light .mensaje-bot, html.light .burbuja-bot p,
+.aplicacion.tema-light .mensaje-bot, .aplicacion.tema-light .burbuja-bot p { color: #334155; }
+html.light .burbuja-bot p, .aplicacion.tema-light .burbuja-bot p { background: #e2e8f0; }
+html.light .campo-label, html.light .titulo-seccion,
+.aplicacion.tema-light .campo-label, .aplicacion.tema-light .titulo-seccion { color: #334155; }
+html.light textarea, html.light .selector-categoria-select, html.light .selector-ubicacion,
+html.light .acciones-operador select, html.light .modal-login input,
+.aplicacion.tema-light textarea, .aplicacion.tema-light .selector-categoria-select,
+.aplicacion.tema-light .selector-ubicacion, .aplicacion.tema-light .acciones-operador select,
+.aplicacion.tema-light .modal-login input { color: #0f172a; background-color: #ffffff; border-color: #cbd5e1; }
+html.light .selector-categoria-select, .aplicacion.tema-light .selector-categoria-select { color-scheme: light; }
+html.light textarea::placeholder, .aplicacion.tema-light textarea::placeholder { color: #64748b; }
+html.light .introduccion, html.light .sobretitulo, html.light .ayuda, html.light .ayuda-ubicacion,
+html.light .etiqueta-en-vivo, html.light .chat > small,
+.aplicacion.tema-light .introduccion, .aplicacion.tema-light .sobretitulo,
+.aplicacion.tema-light .ayuda, .aplicacion.tema-light .ayuda-ubicacion,
+.aplicacion.tema-light .chat > small { color: #475569; }
+html.light .foto-seleccionada, .aplicacion.tema-light .foto-seleccionada { color: #1e293b; }
+html.light .foto-seleccionada small, .aplicacion.tema-light .foto-seleccionada small { color: #475569; }
+html.light .control-demo, html.light .control-lluvia, html.light .control-radar,
+.aplicacion.tema-light .control-demo, .aplicacion.tema-light .control-lluvia,
+.aplicacion.tema-light .control-radar { color: #334155; }
+html.light .control-demo i, html.light .control-radar i,
+.aplicacion.tema-light .control-demo i, .aplicacion.tema-light .control-radar i { background: #94a3b8; }
+html.light .control-demo input:checked + i, .aplicacion.tema-light .control-demo input:checked + i { background: #15803d; }
+html.light .control-lluvia input, html.light .controles-radar input,
+.aplicacion.tema-light .control-lluvia input, .aplicacion.tema-light .controles-radar input { accent-color: #1d4ed8; }
+html.light .franja-informacion, .aplicacion.tema-light .franja-informacion { color: #0f172a; }
+html.light .clima-pildora, .aplicacion.tema-light .clima-pildora { color: #0f172a; background: #ffffff; border-color: #cbd5e1; }
+html.light .clima-segmento small, .aplicacion.tema-light .clima-segmento small { color: #475569; }
+html.light .clima-segmento strong, .aplicacion.tema-light .clima-segmento strong { color: #0f172a; }
+html.light .clima-segmento + .clima-segmento, .aplicacion.tema-light .clima-segmento + .clima-segmento { border-color: #cbd5e1; }
+html.light .radar-inactivo, .aplicacion.tema-light .radar-inactivo { color: #475569; }
+html.light .controles-radar, .aplicacion.tema-light .controles-radar { color: #334155; background: #ffffff; border-color: #cbd5e1; }
+html.light .tarjetas-metricas div, .aplicacion.tema-light .tarjetas-metricas div { background: #ffffff; border-color: #cbd5e1; }
+html.light .tarjetas-metricas strong, html.light .tarjetas-metricas div:nth-child(2) strong,
+.aplicacion.tema-light .tarjetas-metricas strong, .aplicacion.tema-light .tarjetas-metricas div:nth-child(2) strong { color: #0f172a; }
+html.light .tarjetas-metricas span, html.light .tarjetas-metricas small,
+.aplicacion.tema-light .tarjetas-metricas span, .aplicacion.tema-light .tarjetas-metricas small { color: #475569; }
+html.light .resumen-mapa, .aplicacion.tema-light .resumen-mapa { color: #334155; background: #f8fafc; border-color: #cbd5e1; }
+html.light .filtros-categoria strong, html.light .filtro-seleccionado,
+.aplicacion.tema-light .filtros-categoria strong, .aplicacion.tema-light .filtro-seleccionado { color: #334155; }
+html.light .aplicacion .filtros-categoria button.filtro-chip:not(.filtro-activo),
+.aplicacion.tema-light .filtros-categoria button.filtro-chip:not(.filtro-activo) { color: #334155; background: #ffffff; border-color: #cbd5e1; }
+html.light .aplicacion .filtros-categoria button.filtro-chip:not(.filtro-activo):hover,
+.aplicacion.tema-light .filtros-categoria button.filtro-chip:not(.filtro-activo):hover { background: #e2e8f0; border-color: #94a3b8; }
+html.light .filtro-seleccionado button, .aplicacion.tema-light .filtro-seleccionado button { color: #1d4ed8 !important; }
+html.light .mapa-contenedor, .aplicacion.tema-light .mapa-contenedor { background: #e2e8f0; border-color: #cbd5e1; }
+html.light .mapa, .aplicacion.tema-light .mapa { filter: none; }
+html.light .estado-mapa, .aplicacion.tema-light .estado-mapa { color: #0f172a; background: #ffffffed; border: 1px solid #cbd5e1; }
+html.light .detalle-reporte, .aplicacion.tema-light .detalle-reporte { color: #0f172a; background: #ffffffed; border-color: #cbd5e1; box-shadow: 0 8px 25px #0f172a24; }
+html.light .detalle-reporte p, .aplicacion.tema-light .detalle-reporte p { color: #334155; }
+html.light .detalle-cerrar, html.light .modal-cerrar-icono,
+.aplicacion.tema-light .detalle-cerrar, .aplicacion.tema-light .modal-cerrar-icono { color: #475569; }
+html.light .sugerencia-ia, .aplicacion.tema-light .sugerencia-ia { color: #3b0764; background: #f3e8ff; }
+html.light .registro-publico, .aplicacion.tema-light .registro-publico { background: #ffffff; border-color: #cbd5e1; }
+html.light .registro-toggle, html.light .registro-contenido,
+.aplicacion.tema-light .registro-toggle, .aplicacion.tema-light .registro-contenido { color: #334155; }
+html.light .registro-item, .aplicacion.tema-light .registro-item { border-color: #e2e8f0; }
+html.light .registro-publico a, html.light .timeline-sello a, html.light .burbuja-bot a,
+.aplicacion.tema-light .registro-publico a, .aplicacion.tema-light .timeline-sello a,
+.aplicacion.tema-light .burbuja-bot a { color: #1d4ed8; }
+html.light .timeline-sello strong, html.light .timeline-sello small,
+.aplicacion.tema-light .timeline-sello strong, .aplicacion.tema-light .timeline-sello small { color: #334155; }
+html.light .modal-boletin, .aplicacion.tema-light .modal-boletin { color: #0f172a; background: #ffffff; border-color: #cbd5e1; }
+html.light .modal-encabezado, html.light .modal-acciones,
+.aplicacion.tema-light .modal-encabezado, .aplicacion.tema-light .modal-acciones { border-color: #e2e8f0; }
+html.light .boletin-texto, html.light .boletin-estructurado, html.light .boletin-vacio,
+.aplicacion.tema-light .boletin-texto, .aplicacion.tema-light .boletin-estructurado,
+.aplicacion.tema-light .boletin-vacio { color: #334155; }
+html.light .accion-boletin, .aplicacion.tema-light .accion-boletin { color: #1e3a8a; border-color: #cbd5e1; }
+html.light .barrio-boletin, .aplicacion.tema-light .barrio-boletin { color: #334155; background: transparent; }
+html.light .barrio-boletin:hover, .aplicacion.tema-light .barrio-boletin:hover { color: #0f172a; background: #e2e8f0; }
+html.light .leaflet-popup-content-wrapper, html.light .leaflet-popup-tip,
+.aplicacion.tema-light .leaflet-popup-content-wrapper, .aplicacion.tema-light .leaflet-popup-tip { color: #0f172a; background: #ffffff; }
+html.light .leaflet-popup-content, .aplicacion.tema-light .leaflet-popup-content { color: #0f172a; }
+html.light .leaflet-popup-content a, html.light .leaflet-container a.leaflet-popup-close-button,
+.aplicacion.tema-light .leaflet-popup-content a, .aplicacion.tema-light .leaflet-container a.leaflet-popup-close-button { color: #1d4ed8; }
+html.light .leaflet-bar a, html.light .leaflet-bar a:hover,
+.aplicacion.tema-light .leaflet-bar a, .aplicacion.tema-light .leaflet-bar a:hover { color: #0f172a; background: #ffffff; border-color: #cbd5e1; }
+html.light .leaflet-bar a:hover, .aplicacion.tema-light .leaflet-bar a:hover { background: #e2e8f0; }
+html.light .leaflet-control-attribution, .aplicacion.tema-light .leaflet-control-attribution { color: #334155; background: #ffffffed !important; }
+html.light .leaflet-control-attribution a, .aplicacion.tema-light .leaflet-control-attribution a { color: #1d4ed8; }
+html.light .aplicacion button:not(.boton--primario):not(.boton--peligro):not(.boton--activo):not(.filtro-activo),
+.aplicacion.tema-light button:not(.boton--primario):not(.boton--peligro):not(.boton--activo):not(.filtro-activo) { color: #0f172a; background-color: #ffffff; border-color: #cbd5e1; }
+html.light .aplicacion button:not(.boton--primario):not(.boton--peligro):not(.boton--activo):not(.filtro-activo):hover,
+.aplicacion.tema-light button:not(.boton--primario):not(.boton--peligro):not(.boton--activo):not(.filtro-activo):hover { background-color: #e2e8f0; }
+html.light .aplicacion button.boton--primario, .aplicacion.tema-light button.boton--primario { color: #092218; background: var(--verde); border-color: var(--verde); }
+html.light .aplicacion button.boton--peligro, .aplicacion.tema-light button.boton--peligro { color: #ffffff; background: #8b2525; border-color: #a83b3b; }
+html.light .aplicacion button.boton--activo, .aplicacion.tema-light button.boton--activo { color: #e5f5eb; background: #234b38; border-color: #4a9c6d; }
+html.light .aviso-operador, .aplicacion.tema-light .aviso-operador { color: #14532d; background: #dcfce7; border-color: #86efac; }
+html.light .aviso-operador button, .aplicacion.tema-light .aviso-operador button { color: #14532d; background: transparent; }
+
+.aplicacion, .panel-ciudadano, .panel-municipal, .chat, .clima-pildora, .detalle-reporte, .modal-boletin,
+.resumen-mapa, .registro-publico, textarea, select, .aplicacion button { transition: color .22s ease, background-color .22s ease, border-color .22s ease; }
+.tema-toggle { white-space: nowrap; }
+.aplicacion.tema-light .detalle-reporte > button:not(.detalle-cerrar) { justify-content: flex-start; text-align: left; }
+.aplicacion.tema-light .sugerencia-ia .boton { display: flex; width: 100%; margin-top: 8px; }
