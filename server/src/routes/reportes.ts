@@ -4,7 +4,10 @@ import {
   obtenerReportePorId,
   crearReporte,
   actualizarEstadoReporte,
+  validarReporte,
+  actualizarCategoriaReporte,
 } from '../controllers/reportesController';
+import { requiereAdmin } from '../middleware/requiereAdmin';
 
 const router = Router();
 
@@ -15,6 +18,8 @@ router.get('/reportes/:id', obtenerReportePorId);
 // POST /api/reportes
 router.post('/reportes', crearReporte);
 // PATCH /api/reportes/:id/estado
-router.patch('/reportes/:id/estado', actualizarEstadoReporte);
+router.patch('/reportes/:id/estado', requiereAdmin, actualizarEstadoReporte);
+router.post('/reportes/:id/validar', requiereAdmin, validarReporte);
+router.patch('/reportes/:id/categoria', requiereAdmin, actualizarCategoriaReporte);
 
 export default router;

@@ -20,6 +20,29 @@ enum EstadoReporte {
   RESUELTO
 }
 
+enum Categoria {
+  ANEGAMIENTO
+  ARBOLADO
+  BASURA_CLOACAS
+  VIAL
+  LUMINARIA
+  SEMAFORO
+  CABLE_ELECTRICO
+}
+
+enum EstadoSello {
+  SIN_SELLO
+  PENDIENTE
+  ANCLADO
+  ERROR
+}
+
+enum TipoEventoSello {
+  CREACION
+  CAMBIO_ESTADO
+  VALIDACION
+}
+
 model Reporte {
   id             Int           @id @default(autoincrement())
   expedienteDoco String        @unique
@@ -36,4 +59,34 @@ model Reporte {
   esDemo         Boolean       @default(false)
   umbralLluvia   Int?
   fechaCreacion  DateTime      @default(now())
+  categoria      Categoria     @default(ANEGAMIENTO)
+  categoriaSugeridaIa Categoria?
+  resumenIa      String?
+  fotoHash       String?
+  cuentaId       String?
+  validado       Boolean       @default(false)
+  fechaValidacion DateTime?
+  confirmaciones Int           @default(1)
+  zonaCritica    Boolean       @default(false)
+  esSemilla      Boolean       @default(false)
+  eventosSello   EventoSello[]
+}
+
+model EventoSello {
+  id                  Int             @id @default(autoincrement())
+  reporteId           Int
+  reporte             Reporte         @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+  tipo                TipoEventoSello
+  estadoNuevo         String?
+  hash                String
+  hashPrevio          String?
+  selloEstado         EstadoSello     @default(PENDIENTE)
+  hederaTransactionId String?
+  hederaSecuencia     Int?
+  tiempoConsenso      String?
+  intentos            Int             @default(0)
+  ultimoError         String?
+  creadoEn            DateTime        @default(now())
+
+  @@index([reporteId, creadoEn])
 }

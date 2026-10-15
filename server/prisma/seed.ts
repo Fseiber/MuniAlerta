@@ -1,10 +1,11 @@
 import prisma from '../src/db';
 import { barrios } from '../src/barrios';
-import { EstadoReporte, Gravedad } from '@prisma/client';
+import { Categoria, EstadoReporte, Gravedad } from '@prisma/client';
 
 const BARRIOS_CRITICOS = ['Bañado Norte', 'Laguna Seca', 'Cambá Cuá', 'Mil Viviendas'];
 const ANGULO_TRAZADO_GRAVE = 0;
 const LONGITUD_TRAZADO_M = 200;
+const OFFSETS_HORAS = [1, 5, 9, 14, 19, 25, 31, 38, 44, 51, 60, 68, 76, 84, 92, 100];
 
 type CasoDemo = {
   barrio: string;
@@ -12,9 +13,10 @@ type CasoDemo = {
   descripcion: string;
   offsetLat: number;
   offsetLng: number;
-  umbralLluvia: number;
+  umbralLluvia: number | null;
   esTransitable: boolean;
   radioCharcoM?: number;
+  categoria?: Categoria;
 };
 
 const casos: CasoDemo[] = [
@@ -34,7 +36,7 @@ const casos: CasoDemo[] = [
   { barrio: 'Esperanza', gravedad: Gravedad.LEVE, descripcion: 'En Esperanza se registró una acumulación menor, la calle es transitable.', offsetLat: 0.0003, offsetLng: 0.0006, umbralLluvia: 22, esTransitable: true },
   { barrio: 'Esperanza', gravedad: Gravedad.MODERADO, descripcion: 'En Esperanza el agua cubre un carril y dificulta el transporte público.', offsetLat: -0.0008, offsetLng: -0.0004, umbralLluvia: 58, esTransitable: true, radioCharcoM: 19 },
   { barrio: 'Ciudades Correntinas', gravedad: Gravedad.LEVE, descripcion: 'En Ciudades Correntinas hay un charco superficial que permite circular.', offsetLat: 0.0005, offsetLng: 0.0005, umbralLluvia: 16, esTransitable: true },
-  { barrio: 'Ciudades Correntinas', gravedad: Gravedad.MODERADO, descripcion: 'En Ciudades Correntinas el anegamiento parcial exige circular con cuidado.', offsetLat: -0.0006, offsetLng: -0.0006, umbralLluvia: 44, esTransitable: true, radioCharcoM: 23 },
+  { barrio: 'Ciudades Correntinas', gravedad: Gravedad.MODERADO, descripcion: 'En Ciudades Correntinas la inundación parcial exige circular con cuidado.', offsetLat: -0.0006, offsetLng: -0.0006, umbralLluvia: 44, esTransitable: true, radioCharcoM: 23 },
   { barrio: 'Aldana', gravedad: Gravedad.LEVE, descripcion: 'En Aldana una boca de tormenta acumula poca agua, pero el paso está libre.', offsetLat: -0.0004, offsetLng: 0.0004, umbralLluvia: 9, esTransitable: true },
   { barrio: 'Aldana', gravedad: Gravedad.MODERADO, descripcion: 'En Aldana el agua ocupa media calzada durante la lluvia intensa.', offsetLat: 0.0008, offsetLng: -0.0003, umbralLluvia: 46, esTransitable: true, radioCharcoM: 21 },
   { barrio: 'Molina Punta', gravedad: Gravedad.LEVE, descripcion: 'En Molina Punta se observa una acumulación pequeña, todavía transitable.', offsetLat: 0.0004, offsetLng: -0.0006, umbralLluvia: 13, esTransitable: true },
@@ -56,13 +58,21 @@ const casos: CasoDemo[] = [
   { barrio: 'Bañado Norte', gravedad: Gravedad.GRAVE, descripcion: 'En Bañado Norte el agua cubre la calzada completa y hay corriente.', offsetLat: 0.0008, offsetLng: -0.0006, umbralLluvia: 92, esTransitable: false, radioCharcoM: 42 },
   { barrio: 'Laguna Seca', gravedad: Gravedad.GRAVE, descripcion: 'En Laguna Seca el agua supera el cordón y no permite circular.', offsetLat: -0.0004, offsetLng: 0.0005, umbralLluvia: 68, esTransitable: false, radioCharcoM: 45 },
   { barrio: 'Laguna Seca', gravedad: Gravedad.GRAVE, descripcion: 'En Laguna Seca una cuadra quedó bajo agua, con tránsito interrumpido.', offsetLat: 0.0006, offsetLng: -0.0005, umbralLluvia: 80, esTransitable: false, radioCharcoM: 52 },
-  { barrio: 'Laguna Seca', gravedad: Gravedad.GRAVE, descripcion: 'En Laguna Seca el anegamiento llega a media rueda y requiere cortar el paso.', offsetLat: -0.0008, offsetLng: -0.0003, umbralLluvia: 95, esTransitable: false, radioCharcoM: 38 },
+  { barrio: 'Laguna Seca', gravedad: Gravedad.GRAVE, descripcion: 'En Laguna Seca la inundación llega a media rueda y requiere cortar el paso.', offsetLat: -0.0008, offsetLng: -0.0003, umbralLluvia: 95, esTransitable: false, radioCharcoM: 38 },
   { barrio: 'Cambá Cuá', gravedad: Gravedad.GRAVE, descripcion: 'En Cambá Cuá el agua cubre la calle y los vehículos no pueden avanzar.', offsetLat: 0.0004, offsetLng: 0.0006, umbralLluvia: 65, esTransitable: false, radioCharcoM: 40 },
   { barrio: 'Cambá Cuá', gravedad: Gravedad.GRAVE, descripcion: 'En Cambá Cuá la inundación bloquea una esquina completa.', offsetLat: -0.0006, offsetLng: -0.0004, umbralLluvia: 77, esTransitable: false, radioCharcoM: 50 },
   { barrio: 'Cambá Cuá', gravedad: Gravedad.GRAVE, descripcion: 'En Cambá Cuá el agua llega hasta la vereda y el tramo es intransitable.', offsetLat: 0.0008, offsetLng: -0.0005, umbralLluvia: 90, esTransitable: false, radioCharcoM: 35 },
   { barrio: 'Mil Viviendas', gravedad: Gravedad.GRAVE, descripcion: 'En Mil Viviendas el agua acumulada impide la circulación por la calle.', offsetLat: -0.0005, offsetLng: 0.0004, umbralLluvia: 66, esTransitable: false, radioCharcoM: 46 },
-  { barrio: 'Mil Viviendas', gravedad: Gravedad.GRAVE, descripcion: 'En Mil Viviendas el anegamiento supera media rueda y no pasan autos chicos.', offsetLat: 0.0007, offsetLng: -0.0006, umbralLluvia: 84, esTransitable: false, radioCharcoM: 58 },
+  { barrio: 'Mil Viviendas', gravedad: Gravedad.GRAVE, descripcion: 'En Mil Viviendas la inundación supera media rueda y no pasan autos chicos.', offsetLat: 0.0007, offsetLng: -0.0006, umbralLluvia: 84, esTransitable: false, radioCharcoM: 58 },
   { barrio: 'Mil Viviendas', gravedad: Gravedad.GRAVE, descripcion: 'En Mil Viviendas una corriente de agua atraviesa la calzada y obliga a interrumpir el paso.', offsetLat: -0.0008, offsetLng: -0.0003, umbralLluvia: 98, esTransitable: false, radioCharcoM: 33 },
+  { barrio: 'Centro', categoria: Categoria.LUMINARIA, gravedad: Gravedad.MODERADO, descripcion: 'En Centro una luminaria rota deja la calle oscura durante la noche.', offsetLat: 0.0010, offsetLng: 0.0007, umbralLluvia: null, esTransitable: true },
+  { barrio: 'La Rosada', categoria: Categoria.LUMINARIA, gravedad: Gravedad.LEVE, descripcion: 'En La Rosada una luminaria no enciende y reduce la visibilidad.', offsetLat: -0.0010, offsetLng: 0.0008, umbralLluvia: null, esTransitable: true },
+  { barrio: 'Libertad', categoria: Categoria.LUMINARIA, gravedad: Gravedad.MODERADO, descripcion: 'En Libertad varias luminarias apagadas dejan un tramo oscuro.', offsetLat: 0.0010, offsetLng: -0.0008, umbralLluvia: null, esTransitable: true },
+  { barrio: 'La Cruz', categoria: Categoria.SEMAFORO, gravedad: Gravedad.GRAVE, descripcion: 'En La Cruz el semáforo fuera de servicio genera riesgo en la esquina.', offsetLat: 0.0010, offsetLng: 0.0008, umbralLluvia: null, esTransitable: true },
+  { barrio: 'Aldana', categoria: Categoria.SEMAFORO, gravedad: Gravedad.MODERADO, descripcion: 'En Aldana un semáforo intermitente requiere señalización.', offsetLat: -0.0010, offsetLng: -0.0008, umbralLluvia: null, esTransitable: true },
+  { barrio: 'Bañado Norte', categoria: Categoria.CABLE_ELECTRICO, gravedad: Gravedad.GRAVE, descripcion: 'En Bañado Norte hay un cable caído sobre la vereda y peligro eléctrico.', offsetLat: 0.0010, offsetLng: -0.0008, umbralLluvia: null, esTransitable: false },
+  { barrio: 'Cambá Cuá', categoria: Categoria.CABLE_ELECTRICO, gravedad: Gravedad.GRAVE, descripcion: 'En Cambá Cuá un cable eléctrico cuelga bajo y amenaza a los peatones.', offsetLat: -0.0010, offsetLng: 0.0008, umbralLluvia: null, esTransitable: false },
+  { barrio: 'Molina Punta', categoria: Categoria.CABLE_ELECTRICO, gravedad: Gravedad.MODERADO, descripcion: 'En Molina Punta se observa un cable eléctrico suelto junto a la calle.', offsetLat: 0.0010, offsetLng: 0.0008, umbralLluvia: null, esTransitable: true },
 ];
 
 function obtenerCentro(nombre: string) {
@@ -88,24 +98,31 @@ async function main() {
       const centro = obtenerCentro(caso.barrio);
       const latitud = centro.lat + caso.offsetLat;
       const longitud = centro.lng + caso.offsetLng;
-      const esGrave = caso.gravedad === Gravedad.GRAVE;
-      if (esGrave && !BARRIOS_CRITICOS.includes(caso.barrio)) {
+       const categoria = caso.categoria ?? (caso.gravedad === Gravedad.GRAVE ? Categoria.ANEGAMIENTO : [Categoria.ARBOLADO, Categoria.BASURA_CLOACAS, Categoria.VIAL][indice % 3]);
+       const esGrave = caso.gravedad === Gravedad.GRAVE;
+       if (categoria === Categoria.ANEGAMIENTO && esGrave && !BARRIOS_CRITICOS.includes(caso.barrio)) {
         throw new Error(`El reporte grave debe pertenecer a un barrio crítico: ${caso.barrio}`);
       }
-      const trazado = esGrave ? crearTrazado(latitud, longitud, indiceGrave++) : null;
+       const trazado = categoria === Categoria.ANEGAMIENTO && esGrave ? crearTrazado(latitud, longitud, indiceGrave++) : null;
       return {
         expedienteDoco: `DOCO-2026-${String(indice + 1).padStart(4, '0')}`,
         barrio: caso.barrio,
         latitud,
         longitud,
-        descripcion: caso.descripcion,
+        descripcion: caso.categoria ? caso.descripcion : categoria === Categoria.ARBOLADO ? `En ${caso.barrio} hay un árbol inclinado que requiere revisión municipal.` : categoria === Categoria.BASURA_CLOACAS ? `En ${caso.barrio} se acumuló basura y el desagüe necesita limpieza.` : categoria === Categoria.VIAL ? `En ${caso.barrio} hay un bache que dificulta la circulación.` : caso.descripcion,
         gravedad: caso.gravedad,
         esTransitable: caso.esTransitable,
         trazado,
-        radioCharcoM: caso.radioCharcoM ?? null,
+        radioCharcoM: categoria === Categoria.ANEGAMIENTO ? caso.radioCharcoM ?? null : null,
         estado: EstadoReporte.PENDIENTE,
         esDemo: true,
-        umbralLluvia: caso.umbralLluvia,
+        umbralLluvia: categoria === Categoria.ANEGAMIENTO ? caso.umbralLluvia : null,
+        categoria,
+        esSemilla: true,
+        zonaCritica: BARRIOS_CRITICOS.includes(caso.barrio),
+        validado: indice % 7 === 0,
+        fechaValidacion: indice % 7 === 0 ? new Date() : null,
+        fechaCreacion: new Date(Date.now() - OFFSETS_HORAS[indice % OFFSETS_HORAS.length] * 3_600_000),
       };
     }),
   });
